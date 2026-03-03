@@ -35,6 +35,9 @@ python3 scripts/mcp_test.py
 - Scientific tools return `String` — errors as `"Error: ..."` messages (no exceptions)
 - `@Tool` / `@ToolParam` from `org.springframework.ai.tool.annotation`
 - SIMD via `jdk.incubator.vector` (requires `--add-modules`)
+- Unit codes are lowercase (e.g., `km`, `lb`, `c`, `psi`)
+- Conversion factors: exact SI definitions, non-terminating factors computed as fractions with DECIMAL128
+- DateTime: java.time API, IANA timezone IDs, ISO-8601 default format
 
 ## Linting
 
@@ -46,9 +49,17 @@ python3 scripts/mcp_test.py
 ## Project Structure
 
 - `tool/` — MCP tool classes (`@Component` + `@Tool`)
-- `engine/` — Expression evaluator (static utility)
+  - Arithmetic: `BasicCalculatorTool`, `ScientificCalculatorTool`, `FinancialCalculatorTool`
+  - Graphing/Printing: `GraphingCalculatorTool`, `PrintingCalculatorTool`
+  - Programmable: `ProgrammableCalculatorTool`, `VectorCalculatorTool`
+  - Unit conversion: `UnitConverterTool`, `CookingConverterTool`, `MeasureReferenceTool`
+  - DateTime: `DateTimeConverterTool`
+- `engine/` — Expression evaluator + unit conversion registry
+  - `ExpressionEvaluator` — recursive descent parser
+  - `UnitCategory`, `UnitDefinition`, `UnitRegistry` — unit conversion engine
 - `config/` — Netty transport config + MCP tool registration
 - `scripts/` — Python MCP integration test scripts
+- `docs/` — Project documentation (architecture, MCP tools, unit conversion, datetime conversion)
 
 ## Test
 
