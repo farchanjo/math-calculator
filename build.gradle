@@ -30,8 +30,11 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webflux'
 
     runtimeOnly 'io.netty:netty-transport-native-io_uring::linux-x86_64'
+    runtimeOnly 'io.netty:netty-transport-native-io_uring::linux-aarch_64'
     runtimeOnly 'io.netty:netty-transport-native-epoll::linux-x86_64'
+    runtimeOnly 'io.netty:netty-transport-native-epoll::linux-aarch_64'
     runtimeOnly 'io.netty:netty-transport-native-kqueue::osx-x86_64'
+    runtimeOnly 'io.netty:netty-transport-native-kqueue::osx-aarch_64'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
