@@ -6,11 +6,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.archanjo.mathcalculator.tool.BasicCalculatorTool;
+import com.archanjo.mathcalculator.tool.CookingConverterTool;
+import com.archanjo.mathcalculator.tool.DateTimeConverterTool;
 import com.archanjo.mathcalculator.tool.FinancialCalculatorTool;
 import com.archanjo.mathcalculator.tool.GraphingCalculatorTool;
+import com.archanjo.mathcalculator.tool.MeasureReferenceTool;
 import com.archanjo.mathcalculator.tool.PrintingCalculatorTool;
 import com.archanjo.mathcalculator.tool.ProgrammableCalculatorTool;
 import com.archanjo.mathcalculator.tool.ScientificCalculatorTool;
+import com.archanjo.mathcalculator.tool.UnitConverterTool;
 import com.archanjo.mathcalculator.tool.VectorCalculatorTool;
 
 @Configuration
@@ -24,10 +28,16 @@ public class McpToolConfig {
             final GraphingCalculatorTool graphing,
             final PrintingCalculatorTool printing,
             final ProgrammableCalculatorTool programmable,
-            final VectorCalculatorTool vector) {
+            final VectorCalculatorTool vector,
+            final UnitConverterTool unitConverter,
+            final CookingConverterTool cookingConverter,
+            final MeasureReferenceTool measureReference,
+            final DateTimeConverterTool dateTimeConverter) {
         return MethodToolCallbackProvider.builder()
                 .toolObjects(basic, scientific, financial,
-                        graphing, printing, programmable, vector)
+                        graphing, printing, programmable, vector,
+                        unitConverter, cookingConverter,
+                        measureReference, dateTimeConverter)
                 .build();
     }
 }
