@@ -64,6 +64,133 @@ tasks.named('bootRun') {
     )
 }
 
+// ---------------------------------------------------------------------------
+// CDS (Class Data Sharing) tasks — faster startup via pre-cached class data
+//
+// Usage:
+//   ./gradlew cds          # full pipeline: bootJar -> training run -> dump archive
+//   ./gradlew cdsRun       # run the app using the CDS archive
+//   ./gradlew cdsDeploy    # copy JAR + CDS archive to /opt/calculator (requires sudo)
+// ---------------------------------------------------------------------------
+
+def cdsDir     = layout.buildDirectory.dir('cds')
+def cdsArchive = cdsDir.map { it.file('app.jsa') }
+def jarFile    = tasks.named('bootJar').flatMap { it.archiveFile }
+
+def cdsBaseJvmArgs = [
+    '--add-modules', 'jdk.incubator.vector',
+    '--enable-native-access=ALL-UNNAMED',
+    '--add-opens', 'java.base/jdk.internal.misc=ALL-UNNAMED',
+    '--add-opens', 'java.base/java.nio=ALL-UNNAMED',
+    '-Dio.netty.tryReflectionSetAccessible=true',
+]
+
+tasks.register('cdsTrainingRun', Exec) {
+    description = 'Start the app with -XX:ArchiveClassesAtExit to record loaded classes for CDS.'
+    group = 'cds'
+    dependsOn 'bootJar'
+
+    doFirst { cdsDir.get().asFile.mkdirs() }
+
+    def javaHome = System.getenv('JAVA_HOME') ?: '/opt/homebrew/Cellar/openjdk/25.0.1/libexec/openjdk.jdk/Contents/Home'
+    def javaBin  = "${javaHome}/bin/java"
+    def jar      = jarFile.get().asFile.absolutePath
+    def archive  = cdsArchive.get().asFile.absolutePath
+    def port     = 44321
+
+    commandLine 'bash', '-c', """
+        # Start the app in background for CDS training
+        ${javaBin} \\
+            ${cdsBaseJvmArgs.join(' ')} \\
+            -XX:ArchiveClassesAtExit=${archive} \\
+            -Xshare:auto \\
+            -Dspring.main.lazy-initialization=true \\
+            -Dserver.port=${port} \\
+            -jar ${jar} &
+        APP_PID=\$!
+
+        # Wait for startup (max 20s)
+        for i in \$(seq 1 40); do
+            if curl -s -o /dev/null --max-time 1 http://localhost:${port}/sse 2>/dev/null; then
+                echo "Server started (PID \$APP_PID) — stopping to flush CDS archive..."
+                kill \$APP_PID
+                wait \$APP_PID 2>/dev/null
+                exit 0
+            fi
+            sleep 0.5
+        done
+
+        echo "ERROR: Server did not start within 20s"
+        kill \$APP_PID 2>/dev/null
+        exit 1
+    """.stripIndent().trim()
+}
+
+tasks.register('cds') {
+    description = 'Build fat JAR and generate CDS archive in one step.'
+    group = 'cds'
+    dependsOn 'cdsTrainingRun'
+
+    doLast {
+        def archive = cdsArchive.get().asFile
+        if (archive.exists()) {
+            def sizeMb = String.format('%.1f', archive.length() / (1024.0 * 1024.0))
+            logger.lifecycle('')
+            logger.lifecycle("CDS archive ready: ${archive.absolutePath} (${sizeMb} MB)")
+            logger.lifecycle("Run with:  ./gradlew cdsRun")
+            logger.lifecycle("Deploy:    ./gradlew cdsDeploy")
+            logger.lifecycle('')
+        } else {
+            throw new GradleException('CDS archive was not generated. Check training run output.')
+        }
+    }
+}
+
+tasks.register('cdsRun', JavaExec) {
+    description = 'Run the application using the CDS archive for faster startup.'
+    group = 'cds'
+    dependsOn 'bootJar'
+
+    classpath = files(jarFile)
+    jvmArgs cdsBaseJvmArgs + [
+        '-XX:+UseZGC',
+        '-XX:+ZGenerational',
+        '-Xms512m',
+        '-Xmx1g',
+        '-XX:MaxDirectMemorySize=256m',
+        '-XX:+UseStringDeduplication',
+        '-XX:+TieredCompilation',
+        '-XX:ReservedCodeCacheSize=256m',
+        "-XX:SharedArchiveFile=${cdsArchive.get().asFile.absolutePath}",
+        '-Xshare:auto',
+    ]
+    mainClass = '-jar'
+    args jarFile.get().asFile.absolutePath
+}
+
+tasks.register('cdsDeploy', Exec) {
+    description = 'Copy JAR and CDS archive to /opt/calculator (requires sudo).'
+    group = 'cds'
+    dependsOn 'cds'
+
+    def jar     = jarFile.get().asFile
+    def archive = cdsArchive.get().asFile
+
+    commandLine 'sudo', 'bash', '-c',
+        "mkdir -p /opt/calculator && " +
+        "cp '${jar.absolutePath}' /opt/calculator/ && " +
+        "cp '${archive.absolutePath}' /opt/calculator/ && " +
+        "chown -R root:wheel /opt/calculator"
+
+    doLast {
+        logger.lifecycle('')
+        logger.lifecycle('Deployed to /opt/calculator/:')
+        logger.lifecycle("  JAR: /opt/calculator/${jar.name}")
+        logger.lifecycle("  CDS: /opt/calculator/${archive.name}")
+        logger.lifecycle('')
+    }
+}
+
 checkstyle {
     toolVersion = '10.23.1'
     configFile = file('checkstyle.xml')
