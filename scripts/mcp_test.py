@@ -2,7 +2,7 @@
 """
 MCP Tool Integration Tests + Benchmark — math-calculator (asyncio)
 
-Validates all 30 MCP tools via SSE transport using async I/O:
+Validates all 44 MCP tools via SSE transport using async I/O:
   - Success cases with precision assertions
   - Error cases (invalid input, domain errors, edge cases)
   - Latency metrics collected for every call
@@ -462,6 +462,160 @@ async def test_tape_calculator(s):
     await check(s, "tape unknown op", "calculateWithTape", {"operations": '[{"op":"X","value":10}]'}, is_error=True)
 
 
+async def test_unit_converter(s):
+    print("\n[UnitConverterTool]")
+    await check(s, "convert 1 km -> m = 1000", "convert",
+                {"value": "1", "fromUnit": "km", "toUnit": "m", "category": "LENGTH"}, exact="1000")
+    await check(s, "convert 1 lb -> kg", "convert",
+                {"value": "1", "fromUnit": "lb", "toUnit": "kg", "category": "MASS"}, contains="0.4535")
+    await check(s, "convert 100 c -> f = 212", "convert",
+                {"value": "100", "fromUnit": "c", "toUnit": "f", "category": "TEMPERATURE"}, exact="212")
+    await check(s, "convert 0 c -> f = 32", "convert",
+                {"value": "0", "fromUnit": "c", "toUnit": "f", "category": "TEMPERATURE"}, exact="32")
+    await check(s, "convert 1 usgal -> l", "convert",
+                {"value": "1", "fromUnit": "usgal", "toUnit": "l", "category": "VOLUME"}, contains="3.7854")
+    await check(s, "convert 1 mi -> km", "convert",
+                {"value": "1", "fromUnit": "mi", "toUnit": "km", "category": "LENGTH"}, contains="1.609")
+    await check(s, "convert 1 atm -> psi", "convert",
+                {"value": "1", "fromUnit": "atm", "toUnit": "psi", "category": "PRESSURE"}, contains="14.69")
+    await check(s, "convert 1 hp -> w", "convert",
+                {"value": "1", "fromUnit": "hp", "toUnit": "w", "category": "POWER"}, contains="745")
+    await check(s, "convert 1 gb -> mb = 1024", "convert",
+                {"value": "1", "fromUnit": "gb", "toUnit": "mb", "category": "DATA_STORAGE"}, exact="1024")
+    await check(s, "autoDetect 1 km -> m = 1000", "convertAutoDetect",
+                {"value": "1", "fromUnit": "km", "toUnit": "m"}, exact="1000")
+    await check(s, "autoDetect 5 lb -> kg", "convertAutoDetect",
+                {"value": "5", "fromUnit": "lb", "toUnit": "kg"}, contains="2.267")
+    await check(s, "autoDetect 1 h -> min = 60", "convertAutoDetect",
+                {"value": "1", "fromUnit": "h", "toUnit": "min"}, exact="60")
+    print("  --- error cases ---")
+    await check(s, "convert bad category", "convert",
+                {"value": "1", "fromUnit": "km", "toUnit": "m", "category": "INVALID"}, is_error=True)
+    await check(s, "convert unit not in category", "convert",
+                {"value": "1", "fromUnit": "km", "toUnit": "kg", "category": "LENGTH"}, is_error=True)
+    await check(s, "convert invalid value", "convert",
+                {"value": "abc", "fromUnit": "km", "toUnit": "m", "category": "LENGTH"}, is_error=True)
+    await check(s, "autoDetect unknown unit", "convertAutoDetect",
+                {"value": "1", "fromUnit": "zzz", "toUnit": "m"}, is_error=True)
+    await check(s, "autoDetect cross-category", "convertAutoDetect",
+                {"value": "1", "fromUnit": "km", "toUnit": "kg"}, is_error=True)
+
+
+async def test_cooking_converter(s):
+    print("\n[CookingConverterTool]")
+    await check(s, "volume 1 tbsp -> tsp = 3", "convertCookingVolume",
+                {"value": "1", "fromUnit": "tbsp", "toUnit": "tsp"}, contains="3")
+    await check(s, "volume 1 uscup -> ml", "convertCookingVolume",
+                {"value": "1", "fromUnit": "uscup", "toUnit": "ml"}, contains="236")
+    await check(s, "volume 1 l -> ml = 1000", "convertCookingVolume",
+                {"value": "1", "fromUnit": "l", "toUnit": "ml"}, exact="1000")
+    await check(s, "volume 1 usfloz -> ml", "convertCookingVolume",
+                {"value": "1", "fromUnit": "usfloz", "toUnit": "ml"}, contains="29.5")
+    await check(s, "weight 1 kg -> g = 1000", "convertCookingWeight",
+                {"value": "1", "fromUnit": "kg", "toUnit": "g"}, exact="1000")
+    await check(s, "weight 1 lb -> oz = 16", "convertCookingWeight",
+                {"value": "1", "fromUnit": "lb", "toUnit": "oz"}, exact="16")
+    await check(s, "weight 1 lb -> g", "convertCookingWeight",
+                {"value": "1", "fromUnit": "lb", "toUnit": "g"}, contains="453.5")
+    await check(s, "oven 180c -> f = 356", "convertOvenTemperature",
+                {"value": "180", "fromUnit": "c", "toUnit": "f"}, exact="356")
+    await check(s, "oven 350f -> c", "convertOvenTemperature",
+                {"value": "350", "fromUnit": "f", "toUnit": "c"}, contains="176")
+    await check(s, "oven gasmark 4 -> c", "convertOvenTemperature",
+                {"value": "4", "fromUnit": "gasmark", "toUnit": "c"}, contains="180")
+    await check(s, "oven 200c -> gasmark", "convertOvenTemperature",
+                {"value": "200", "fromUnit": "c", "toUnit": "gasmark"}, contains="6")
+    print("  --- error cases ---")
+    await check(s, "volume invalid unit", "convertCookingVolume",
+                {"value": "1", "fromUnit": "km", "toUnit": "ml"}, is_error=True)
+    await check(s, "weight invalid unit", "convertCookingWeight",
+                {"value": "1", "fromUnit": "l", "toUnit": "g"}, is_error=True)
+    await check(s, "oven invalid unit", "convertOvenTemperature",
+                {"value": "100", "fromUnit": "k", "toUnit": "c"}, is_error=True)
+    await check(s, "volume bad value", "convertCookingVolume",
+                {"value": "abc", "fromUnit": "l", "toUnit": "ml"}, is_error=True)
+
+
+async def test_measure_reference(s):
+    print("\n[MeasureReferenceTool]")
+    await check(s, "listCategories has LENGTH", "listCategories", {}, contains="LENGTH")
+    await check(s, "listCategories has TEMPERATURE", "listCategories", {}, contains="TEMPERATURE")
+    await check(s, "listCategories has DATA_STORAGE", "listCategories", {}, contains="DATA_STORAGE")
+    await check(s, "listUnits(LENGTH) has km", "listUnits", {"category": "LENGTH"}, contains="km")
+    await check(s, "listUnits(MASS) has lb", "listUnits", {"category": "MASS"}, contains="lb")
+    await check(s, "listUnits(TEMPERATURE) has c", "listUnits", {"category": "TEMPERATURE"}, contains='"c"')
+    await check(s, "getConversionFactor km -> m = 1000", "getConversionFactor",
+                {"fromUnit": "km", "toUnit": "m"}, exact="1000")
+    await check(s, "getConversionFactor in -> cm = 2.54", "getConversionFactor",
+                {"fromUnit": "in", "toUnit": "cm"}, exact="2.54")
+    await check(s, "explainConversion km -> m", "explainConversion",
+                {"fromUnit": "km", "toUnit": "m"}, contains="1000")
+    await check(s, "explainConversion lb -> kg", "explainConversion",
+                {"fromUnit": "lb", "toUnit": "kg"}, contains="0.4535")
+    print("  --- error cases ---")
+    await check(s, "listUnits bad category", "listUnits", {"category": "INVALID"}, is_error=True)
+    await check(s, "getConversionFactor unknown unit", "getConversionFactor",
+                {"fromUnit": "zzz", "toUnit": "m"}, is_error=True)
+    await check(s, "explainConversion unknown unit", "explainConversion",
+                {"fromUnit": "zzz", "toUnit": "yyy"}, is_error=True)
+    await check(s, "getConversionFactor cross-category", "getConversionFactor",
+                {"fromUnit": "km", "toUnit": "kg"}, is_error=True)
+
+
+async def test_datetime_converter(s):
+    print("\n[DateTimeConverterTool]")
+    await check(s, "convertTimezone NYC -> London", "convertTimezone",
+                {"datetime": "2026-01-15T12:00:00", "fromTimezone": "America/New_York", "toTimezone": "Europe/London"},
+                contains="17:00")
+    await check(s, "convertTimezone Tokyo -> NYC", "convertTimezone",
+                {"datetime": "2026-06-15T09:00:00", "fromTimezone": "Asia/Tokyo", "toTimezone": "America/New_York"},
+                contains="20:00")
+    await check(s, "currentDateTime UTC iso", "currentDateTime",
+                {"timezone": "UTC", "format": "iso"}, contains="202")
+    await check(s, "currentDateTime America/Sao_Paulo", "currentDateTime",
+                {"timezone": "America/Sao_Paulo", "format": "iso"}, contains="202")
+    await check(s, "formatDateTime iso -> epoch", "formatDateTime",
+                {"datetime": "2026-01-01T00:00:00", "inputFormat": "iso", "outputFormat": "epoch",
+                 "timezone": "UTC"}, contains="1767")
+    await check(s, "formatDateTime iso -> rfc1123", "formatDateTime",
+                {"datetime": "2026-01-01T12:00:00", "inputFormat": "iso", "outputFormat": "rfc1123",
+                 "timezone": "UTC"}, contains="Jan 2026")
+    await check(s, "formatDateTime custom -> iso", "formatDateTime",
+                {"datetime": "2026-03-15 10:30:00", "inputFormat": "yyyy-MM-dd HH:mm:ss",
+                 "outputFormat": "iso", "timezone": "UTC"}, contains="2026-03-15")
+    await check(s, "listTimezones America", "listTimezones",
+                {"region": "America"}, contains="America/New_York")
+    await check(s, "listTimezones Europe", "listTimezones",
+                {"region": "Europe"}, contains="Europe/London")
+    await check(s, "listTimezones Asia", "listTimezones",
+                {"region": "Asia"}, contains="Asia/Tokyo")
+    await check(s, "dateTimeDifference 1 day", "dateTimeDifference",
+                {"datetime1": "2026-01-01T00:00:00", "datetime2": "2026-01-02T00:00:00",
+                 "timezone": "UTC"}, contains='"days":1')
+    await check(s, "dateTimeDifference 1 year", "dateTimeDifference",
+                {"datetime1": "2025-01-01T00:00:00", "datetime2": "2026-01-01T00:00:00",
+                 "timezone": "UTC"}, contains='"years":1')
+    await check(s, "dateTimeDifference hours/minutes", "dateTimeDifference",
+                {"datetime1": "2026-01-01T10:00:00", "datetime2": "2026-01-01T13:30:00",
+                 "timezone": "UTC"}, contains='"hours":3')
+    print("  --- error cases ---")
+    await check(s, "convertTimezone bad tz", "convertTimezone",
+                {"datetime": "2026-01-01T12:00:00", "fromTimezone": "Invalid/Zone", "toTimezone": "UTC"},
+                is_error=True)
+    await check(s, "convertTimezone bad datetime", "convertTimezone",
+                {"datetime": "not-a-date", "fromTimezone": "UTC", "toTimezone": "UTC"}, is_error=True)
+    await check(s, "currentDateTime bad tz", "currentDateTime",
+                {"timezone": "Invalid/Zone", "format": "iso"}, is_error=True)
+    await check(s, "listTimezones bad region", "listTimezones",
+                {"region": "Nowhere"}, is_error=True)
+    await check(s, "formatDateTime bad input", "formatDateTime",
+                {"datetime": "not-a-date", "inputFormat": "iso", "outputFormat": "iso",
+                 "timezone": "UTC"}, is_error=True)
+    await check(s, "dateTimeDifference bad tz", "dateTimeDifference",
+                {"datetime1": "2026-01-01T00:00:00", "datetime2": "2026-01-02T00:00:00",
+                 "timezone": "Invalid/Zone"}, is_error=True)
+
+
 # ---------------------------------------------------------------------------
 # Benchmark workloads
 # ---------------------------------------------------------------------------
@@ -495,6 +649,19 @@ BENCHMARK_WORKLOAD = [
     ("findRoots",         {"expression": "x^2 - 16", "variable": "x", "min": -10, "max": 10}),
     ("plotFunction",      {"expression": "x^3", "variable": "x", "min": -2, "max": 2, "steps": 20}),
     ("calculateWithTape", {"operations": '[{"op":"+","value":100},{"op":"*","value":2},{"op":"=","value":0}]'}),
+    ("convert",           {"value": "1", "fromUnit": "km", "toUnit": "m", "category": "LENGTH"}),
+    ("convertAutoDetect", {"value": "5", "fromUnit": "lb", "toUnit": "kg"}),
+    ("convertCookingVolume", {"value": "1", "fromUnit": "tbsp", "toUnit": "tsp"}),
+    ("convertCookingWeight", {"value": "1", "fromUnit": "kg", "toUnit": "g"}),
+    ("convertOvenTemperature", {"value": "180", "fromUnit": "c", "toUnit": "f"}),
+    ("listCategories",    {}),
+    ("listUnits",         {"category": "LENGTH"}),
+    ("getConversionFactor", {"fromUnit": "km", "toUnit": "m"}),
+    ("explainConversion", {"fromUnit": "lb", "toUnit": "kg"}),
+    ("convertTimezone",   {"datetime": "2026-01-15T12:00:00", "fromTimezone": "America/New_York", "toTimezone": "Europe/London"}),
+    ("currentDateTime",   {"timezone": "UTC", "format": "iso"}),
+    ("listTimezones",     {"region": "America"}),
+    ("dateTimeDifference", {"datetime1": "2026-01-01T00:00:00", "datetime2": "2026-01-02T00:00:00", "timezone": "UTC"}),
 ]
 
 
@@ -632,6 +799,10 @@ async def async_main():
         await test_vector_calculator(session)
         await test_expression_evaluator(session)
         await test_tape_calculator(session)
+        await test_unit_converter(session)
+        await test_cooking_converter(session)
+        await test_measure_reference(session)
+        await test_datetime_converter(session)
 
         total = PASS + FAIL
         print("\n" + "=" * 64)
