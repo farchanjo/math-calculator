@@ -1,5 +1,7 @@
 package com.archanjo.mathcalculator.tool;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +39,14 @@ public class GraphingCalculatorTool {
             throw new IllegalArgumentException("Min must be less than max");
         }
 
-        final double stepSize = (max - min) / steps;
+        final BigDecimal bdMin = BigDecimal.valueOf(min);
+        final BigDecimal stepSize = BigDecimal.valueOf(max).subtract(bdMin)
+                .divide(BigDecimal.valueOf(steps), MathContext.DECIMAL128);
         final StringBuilder builder = new StringBuilder("[");
 
         for (int idx = 0; idx <= steps; idx++) {
-            final double xValue = min + idx * stepSize;
+            final double xValue = bdMin.add(
+                    stepSize.multiply(BigDecimal.valueOf(idx))).doubleValue();
             final double yValue = ExpressionEvaluator.evaluate(
                     expression, Map.of(variable, xValue));
 
