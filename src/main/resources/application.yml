@@ -9,6 +9,8 @@ spring:
         version: 1.0.0
         type: SYNC
         sse-message-endpoint: /mcp/message
+        annotation-scanner:
+          enabled: false
 
 server:
   port: 44321
