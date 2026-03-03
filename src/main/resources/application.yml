@@ -1,0 +1,14 @@
+spring:
+  threads:
+    virtual:
+      enabled: true
+  ai:
+    mcp:
+      server:
+        name: math-calculator
+        version: 1.0.0
+        type: SYNC
+        sse-message-endpoint: /mcp/message
+
+server:
+  port: 44321

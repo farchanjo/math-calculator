@@ -1,0 +1,65 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.0.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'checkstyle'
+    id 'pmd'
+}
+
+group = 'com.archanjo'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url = uri('https://repo.spring.io/milestone') }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom 'org.springframework.ai:spring-ai-bom:2.0.0-M2'
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webflux'
+
+    runtimeOnly 'io.netty:netty-transport-native-io_uring::linux-x86_64'
+    runtimeOnly 'io.netty:netty-transport-native-epoll::linux-x86_64'
+    runtimeOnly 'io.netty:netty-transport-native-kqueue::osx-x86_64'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-incubating', '-Werror', '--add-modules', 'jdk.incubator.vector'])
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    jvmArgs '--add-modules', 'jdk.incubator.vector'
+}
+
+tasks.named('bootRun') {
+    jvmArgs '--add-modules', 'jdk.incubator.vector'
+}
+
+checkstyle {
+    toolVersion = '10.23.1'
+    configFile = file('checkstyle.xml')
+    maxWarnings = 0
+    maxErrors = 0
+}
+
+pmd {
+    toolVersion = '7.22.0'
+    consoleOutput = true
+    ruleSetFiles = files('pmd-rules.xml')
+    ruleSets = []
+}
