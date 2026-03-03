@@ -42,17 +42,20 @@ A Spring Boot MCP (Model Context Protocol) server that exposes a math calculator
 | `modulo`   | `first`, `second`    | Compute remainder of first divided by second.   |
 | `abs`      | `value`              | Compute absolute value of a number.             |
 
-### Scientific Calculator (StrictMath)
+### Scientific Calculator (StrictMath — String returns)
 
-| Tool        | Params    | Description                                     |
-|-------------|-----------|------------------------------------------------ |
-| `sqrt`      | `number`  | Compute square root of a number.                |
-| `log`       | `number`  | Compute natural logarithm (ln) of a number.     |
-| `log10`     | `number`  | Compute base-10 logarithm of a number.          |
-| `factorial` | `num`     | Compute factorial (n!). Range: 0 to 20.         |
-| `sin`       | `degrees` | Compute sine of an angle in degrees.            |
-| `cos`       | `degrees` | Compute cosine of an angle in degrees.          |
-| `tan`       | `degrees` | Compute tangent of an angle in degrees.         |
+All methods return `String`. Invalid inputs return `"Error: ..."` messages (no exceptions).
+Trig functions use lookup tables for exact values at notable angles (multiples of 30/45 degrees).
+
+| Tool        | Params    | Description                                              |
+|-------------|-----------|----------------------------------------------------------|
+| `sqrt`      | `number`  | Square root. Error if negative.                          |
+| `log`       | `number`  | Natural logarithm (ln). Error if non-positive.           |
+| `log10`     | `number`  | Base-10 logarithm. Error if non-positive.                |
+| `factorial` | `num`     | Factorial (n!). Range: 0–20. Error if out of range.      |
+| `sin`       | `degrees` | Sine. Exact at notable angles (0, 30, 45, 60, 90, ...). |
+| `cos`       | `degrees` | Cosine. Exact at notable angles.                         |
+| `tan`       | `degrees` | Tangent. Error at 90, 270, etc. (vertical asymptote).    |
 
 ### Vector Calculator (SIMD — Java Vector API)
 
@@ -119,9 +122,18 @@ pnpm dlx @modelcontextprotocol/inspector
 
 Connect to `http://localhost:44321/sse`.
 
+### Integration Test Script
+
+```bash
+python3 scripts/mcp_test.py              # default: http://localhost:44321
+python3 scripts/mcp_test.py --base http://host:port
+```
+
+Runs 143 tests covering all 30 MCP tools with precision validation and error-case coverage.
+
 ## Design Principles
 
-- **Precision**: `BigDecimal` for exact basic/financial arithmetic, `StrictMath` for reproducible scientific functions
+- **Precision**: `BigDecimal` for exact basic/financial/graphing arithmetic, `StrictMath` + notable-angle lookup tables for reproducible scientific functions
 - **SIMD**: Java 25 Vector API (`jdk.incubator.vector`) for hardware-accelerated batch array operations
 - **Transport**: Netty with io_uring (Linux), epoll, kqueue (macOS), NIO fallback
 - **Virtual threads**: `spring.threads.virtual.enabled=true` for lightweight concurrency

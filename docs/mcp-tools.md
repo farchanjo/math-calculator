@@ -69,63 +69,67 @@ Compute absolute value of a number.
 
 ## Scientific Calculator
 
-Uses `StrictMath` for reproducible results. Trig functions accept degrees.
+Uses `StrictMath` for reproducible results. All methods return `String`. Invalid inputs return `"Error: ..."` messages instead of throwing exceptions, making errors easy for LLMs to parse.
+
+Trig functions use precomputed lookup tables for exact results at notable angles (multiples of 30 and 45 degrees). Non-notable angles fall back to `StrictMath`.
 
 ### sqrt
 
 Compute square root of a number.
 
 - **Params**: `number` (double, non-negative)
-- **Returns**: `double`
-- **Throws**: `IllegalArgumentException` if negative
-- **Example**: `sqrt(16.0)` -> `4.0`
+- **Returns**: `String` — result or `"Error: ..."` if negative
+- **Example**: `sqrt(16.0)` -> `"4.0"`
+- **Error**: `sqrt(-1)` -> `"Error: Square root is undefined for negative numbers. Received: -1.0"`
 
 ### log
 
 Compute natural logarithm (ln) of a number.
 
 - **Params**: `number` (double, positive)
-- **Returns**: `double`
-- **Throws**: `IllegalArgumentException` if non-positive
+- **Returns**: `String` — result or `"Error: ..."` if non-positive
+- **Example**: `log(2.718281828459045)` -> `"1.0"`
 
 ### log10
 
 Compute base-10 logarithm of a number.
 
 - **Params**: `number` (double, positive)
-- **Returns**: `double`
-- **Throws**: `IllegalArgumentException` if non-positive
+- **Returns**: `String` — result or `"Error: ..."` if non-positive
+- **Example**: `log10(100)` -> `"2.0"`
 
 ### factorial
 
 Compute factorial (n!). Range: 0 to 20.
 
-- **Params**: `num` (int, 0-20)
-- **Returns**: `String` (BigInteger result)
-- **Throws**: `IllegalArgumentException` if out of range
+- **Params**: `num` (int, 0–20)
+- **Returns**: `String` — result or `"Error: ..."` if out of range
 - **Example**: `factorial(5)` -> `"120"`
 
 ### sin
 
-Compute sine of an angle in degrees.
+Compute sine of an angle in degrees. Exact at notable angles (0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330).
 
 - **Params**: `degrees` (double)
-- **Returns**: `double`
-- **Example**: `sin(90.0)` -> `1.0`
+- **Returns**: `String`
+- **Example**: `sin(30)` -> `"0.5"`, `sin(90)` -> `"1.0"`, `sin(360)` -> `"0.0"`
 
 ### cos
 
-Compute cosine of an angle in degrees.
+Compute cosine of an angle in degrees. Exact at notable angles.
 
 - **Params**: `degrees` (double)
-- **Returns**: `double`
+- **Returns**: `String`
+- **Example**: `cos(60)` -> `"0.5"`, `cos(90)` -> `"0.0"`
 
 ### tan
 
-Compute tangent of an angle in degrees.
+Compute tangent of an angle in degrees. Returns error at vertical asymptotes (90, 270, etc.).
 
 - **Params**: `degrees` (double)
-- **Returns**: `double`
+- **Returns**: `String` — result or `"Error: ..."` at undefined angles
+- **Example**: `tan(45)` -> `"1.0"`
+- **Error**: `tan(90)` -> `"Error: Tangent is undefined at 90 degrees (vertical asymptote)."`
 
 ---
 
@@ -174,7 +178,7 @@ Mathematical analysis using the expression engine.
 
 ### plotFunction
 
-Plot a function. Returns JSON array of {x, y} points.
+Plot a function. Returns JSON array of {x, y} points. Uses `BigDecimal` step arithmetic to prevent floating-point drift in x-values.
 
 - **Params**: `expression`, `variable`, `min` (double), `max` (double), `steps` (int > 0)
 - **Returns**: JSON array of `{"x":..., "y":...}` objects
