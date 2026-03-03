@@ -1,16 +1,16 @@
 spring:
   threads:
     virtual:
-      enabled: true
+      enabled: ${SPRING_THREADS_VIRTUAL_ENABLED:true}
   ai:
     mcp:
       server:
-        name: math-calculator
-        version: 1.0.0
-        type: SYNC
-        sse-message-endpoint: /mcp/message
+        name: ${MCP_SERVER_NAME:math-calculator}
+        version: ${MCP_SERVER_VERSION:1.0.0}
+        type: ${MCP_SERVER_TYPE:SYNC}
+        sse-message-endpoint: ${MCP_SSE_ENDPOINT:/mcp/message}
         annotation-scanner:
-          enabled: false
+          enabled: ${MCP_ANNOTATION_SCANNER_ENABLED:false}
 
 server:
-  port: 44321
+  port: ${SERVER_PORT:44321}
