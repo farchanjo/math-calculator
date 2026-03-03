@@ -75,6 +75,22 @@ class GraphingCalculatorToolTest {
                     () -> tool.plotFunction(X_SQUARED, "x", 3, 1, 2),
                     "Should throw when min is greater than max");
         }
+
+        @Test
+        void negativeXValueHasNoDrift() {
+            final String result = tool.plotFunction("x", "x", -1, 1, 10);
+
+            assertTrue(result.contains("\"x\":-0.4,"),
+                    "x-value at step 3 should be exactly -0.4, not -0.3999999999999999");
+        }
+
+        @Test
+        void positiveXValueHasNoDrift() {
+            final String result = tool.plotFunction("x", "x", -1, 1, 10);
+
+            assertTrue(result.contains("\"x\":0.4,"),
+                    "x-value at step 7 should be exactly 0.4, not 0.40000000000000002");
+        }
     }
 
     @Nested
