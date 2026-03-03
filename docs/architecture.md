@@ -11,7 +11,7 @@ graph TD
     N -->|macOS| N3[kqueue]
     N -->|fallback| N4[NIO]
     B --> C[MCP Server Auto-Config]
-    C --> D[Annotation Scanner]
+    C --> D[McpToolConfig<br/>MethodToolCallbackProvider]
     D --> E[BasicCalculatorTool<br/>BigDecimal]
     D --> F[ScientificCalculatorTool<br/>StrictMath]
     D --> G[VectorCalculatorTool<br/>SIMD]
@@ -32,12 +32,8 @@ graph TD
 graph LR
     subgraph "Java 25 Concurrency"
         VT[Virtual Threads<br/>spring.threads.virtual.enabled=true]
-        SC[StructuredTaskScope<br/>java.util.concurrent]
-        SV[ScopedValue<br/>java.lang]
     end
-    VT --> |"each MCP request<br/>runs on virtual thread"| SC
-    SC --> |"parallel sub-tasks<br/>e.g. batch calculations"| SV
-    SV --> |"inherit context<br/>across forked tasks"| TOOL[Calculator Tools]
+    VT --> |"each MCP request<br/>runs on virtual thread"| TOOL[Calculator Tools]
 ```
 
 ## Transport Selection
@@ -82,14 +78,14 @@ The `ExpressionEvaluator` is a recursive descent parser supporting:
 
 ```mermaid
 flowchart TD
-    EXPR[Expression<br/>term (('+' / '-') term)*] --> TERM[Term<br/>power (('*' / '/' / '%') power)*]
-    TERM --> POWER[Power<br/>unary ('^' power)?<br/>right-associative]
-    POWER --> UNARY[Unary<br/>'-' unary / primary]
+    EXPR["Expression<br/>term ((+/-) term)*"] --> TERM["Term<br/>power ((*/ / /%) power)*"]
+    TERM --> POWER["Power<br/>unary (^ power)?<br/>right-associative"]
+    POWER --> UNARY["Unary<br/>- unary / primary"]
     UNARY --> PRIMARY[Primary]
-    PRIMARY --> NUM[Number<br/>decimal / scientific]
-    PRIMARY --> VAR[Variable<br/>lookup in map]
-    PRIMARY --> FUNC[Function Call<br/>sin, cos, sqrt, ...]
-    PRIMARY --> PAREN["'(' expression ')'"]
+    PRIMARY --> NUM["Number<br/>decimal / scientific"]
+    PRIMARY --> VAR["Variable<br/>lookup in map"]
+    PRIMARY --> FUNC["Function Call<br/>sin, cos, sqrt, ..."]
+    PRIMARY --> PAREN["Parenthesized<br/>expression"]
 ```
 
 ## SSE Flow
@@ -119,6 +115,7 @@ graph TB
         APP[MathCalculatorApplication]
         subgraph config
             NTC[NettyTransportConfig]
+            MTC[McpToolConfig]
         end
         subgraph engine
             EE[ExpressionEvaluator]
@@ -134,6 +131,13 @@ graph TB
         end
     end
 
+    MTC --> BCT
+    MTC --> SCT
+    MTC --> VCT
+    MTC --> GCT
+    MTC --> FCT
+    MTC --> PCT
+    MTC --> PRCT
     GCT --> EE
     PRCT --> EE
 ```

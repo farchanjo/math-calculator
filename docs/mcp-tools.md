@@ -8,62 +8,62 @@ Arbitrary-precision arithmetic using `BigDecimal`. All parameters and return val
 
 ### add
 
-Add two numbers.
+Add two numbers. Returns exact result.
 
-- **Params**: `a` (decimal string), `b` (decimal string)
+- **Params**: `first` (decimal string), `second` (decimal string)
 - **Returns**: Sum as plain string
-- **Example**: `add("1.5", "2.5")` → `"4.0"`
+- **Example**: `add("1.5", "2.5")` -> `"4.0"`
 
 ### subtract
 
-Subtract the second number from the first.
+Subtract second from first. Returns exact result.
 
-- **Params**: `a` (decimal string), `b` (decimal string)
+- **Params**: `first` (decimal string), `second` (decimal string)
 - **Returns**: Difference as plain string
-- **Example**: `subtract("10", "3")` → `"7"`
+- **Example**: `subtract("10", "3")` -> `"7"`
 
 ### multiply
 
-Multiply two numbers.
+Multiply two numbers. Returns exact result.
 
-- **Params**: `a` (decimal string), `b` (decimal string)
+- **Params**: `first` (decimal string), `second` (decimal string)
 - **Returns**: Product as plain string
-- **Example**: `multiply("3", "4")` → `"12"`
+- **Example**: `multiply("3", "4")` -> `"12"`
 
 ### divide
 
-Divide with up to 20 decimal places.
+Divide first by second. 20-digit precision.
 
-- **Params**: `a` (decimal string), `b` (decimal string, non-zero)
+- **Params**: `first` (decimal string), `second` (decimal string, non-zero)
 - **Returns**: Quotient as plain string
-- **Throws**: `IllegalArgumentException` if `b` is zero
-- **Example**: `divide("10", "3")` → `"3.33333333333333333333"`
+- **Throws**: `IllegalArgumentException` if `second` is zero
+- **Example**: `divide("10", "3")` -> `"3.33333333333333333333"`
 
 ### power
 
-Raise base to an integer exponent.
+Raise base to exponent. Returns exact result.
 
 - **Params**: `base` (decimal string), `exponent` (non-negative integer string)
 - **Returns**: Result as plain string
 - **Throws**: `IllegalArgumentException` if exponent is negative
-- **Example**: `power("2", "10")` → `"1024"`
+- **Example**: `power("2", "10")` -> `"1024"`
 
 ### modulo
 
-Compute remainder.
+Compute remainder of first divided by second.
 
-- **Params**: `a` (decimal string), `b` (decimal string, non-zero)
+- **Params**: `first` (decimal string), `second` (decimal string, non-zero)
 - **Returns**: Remainder as plain string
-- **Throws**: `IllegalArgumentException` if `b` is zero
-- **Example**: `modulo("10", "3")` → `"1"`
+- **Throws**: `IllegalArgumentException` if `second` is zero
+- **Example**: `modulo("10", "3")` -> `"1"`
 
 ### abs
 
-Absolute value.
+Compute absolute value of a number.
 
-- **Params**: `a` (decimal string)
+- **Params**: `value` (decimal string)
 - **Returns**: Absolute value as plain string
-- **Example**: `abs("-5")` → `"5"`
+- **Example**: `abs("-5")` -> `"5"`
 
 ---
 
@@ -73,16 +73,16 @@ Uses `StrictMath` for reproducible results. Trig functions accept degrees.
 
 ### sqrt
 
-Square root.
+Compute square root of a number.
 
 - **Params**: `number` (double, non-negative)
 - **Returns**: `double`
 - **Throws**: `IllegalArgumentException` if negative
-- **Example**: `sqrt(16.0)` → `4.0`
+- **Example**: `sqrt(16.0)` -> `4.0`
 
 ### log
 
-Natural logarithm (base e).
+Compute natural logarithm (ln) of a number.
 
 - **Params**: `number` (double, positive)
 - **Returns**: `double`
@@ -90,7 +90,7 @@ Natural logarithm (base e).
 
 ### log10
 
-Base-10 logarithm.
+Compute base-10 logarithm of a number.
 
 - **Params**: `number` (double, positive)
 - **Returns**: `double`
@@ -98,31 +98,31 @@ Base-10 logarithm.
 
 ### factorial
 
-Factorial (0! to 20!).
+Compute factorial (n!). Range: 0 to 20.
 
-- **Params**: `n` (int, 0-20)
+- **Params**: `num` (int, 0-20)
 - **Returns**: `String` (BigInteger result)
 - **Throws**: `IllegalArgumentException` if out of range
-- **Example**: `factorial(5)` → `"120"`
+- **Example**: `factorial(5)` -> `"120"`
 
 ### sin
 
-Sine of angle in degrees.
+Compute sine of an angle in degrees.
 
 - **Params**: `degrees` (double)
 - **Returns**: `double`
-- **Example**: `sin(90.0)` → `1.0`
+- **Example**: `sin(90.0)` -> `1.0`
 
 ### cos
 
-Cosine of angle in degrees.
+Compute cosine of an angle in degrees.
 
 - **Params**: `degrees` (double)
 - **Returns**: `double`
 
 ### tan
 
-Tangent of angle in degrees.
+Compute tangent of an angle in degrees.
 
 - **Params**: `degrees` (double)
 - **Returns**: `double`
@@ -135,36 +135,36 @@ Hardware-accelerated batch operations using Java 25 Vector API. Input arrays are
 
 ### sumArray
 
-Sum all elements using SIMD vectorized addition.
+Sum all elements of a numeric array.
 
 - **Params**: `numbers` (comma-separated doubles)
 - **Returns**: Sum as string
-- **Example**: `sumArray("1.0,2.0,3.0")` → `"6.0"`
+- **Example**: `sumArray("1.0,2.0,3.0")` -> `"6.0"`
 
 ### dotProduct
 
-Dot product of two arrays.
+Compute dot product of two numeric arrays.
 
-- **Params**: `a` (comma-separated), `b` (comma-separated, same length)
+- **Params**: `first` (comma-separated), `second` (comma-separated, same length)
 - **Returns**: Dot product as string
 - **Throws**: `IllegalArgumentException` if lengths differ
-- **Example**: `dotProduct("1,2,3", "4,5,6")` → `"32.0"`
+- **Example**: `dotProduct("1,2,3", "4,5,6")` -> `"32.0"`
 
 ### scaleArray
 
-Multiply all elements by a scalar.
+Multiply all array elements by a scalar.
 
 - **Params**: `numbers` (comma-separated), `scalar` (decimal string)
 - **Returns**: Scaled array as comma-separated string
-- **Example**: `scaleArray("1.0,2.0,3.0", "2.0")` → `"2.0,4.0,6.0"`
+- **Example**: `scaleArray("1.0,2.0,3.0", "2.0")` -> `"2.0,4.0,6.0"`
 
 ### magnitudeArray
 
-Euclidean norm (magnitude) of a vector.
+Compute Euclidean norm (magnitude) of a vector.
 
 - **Params**: `numbers` (comma-separated doubles)
 - **Returns**: Magnitude as string
-- **Example**: `magnitudeArray("3.0,4.0")` → `"5.0"`
+- **Example**: `magnitudeArray("3.0,4.0")` -> `"5.0"`
 
 ---
 
@@ -174,7 +174,7 @@ Mathematical analysis using the expression engine.
 
 ### plotFunction
 
-Generate plot points for a function.
+Plot a function. Returns JSON array of {x, y} points.
 
 - **Params**: `expression`, `variable`, `min` (double), `max` (double), `steps` (int > 0)
 - **Returns**: JSON array of `{"x":..., "y":...}` objects
@@ -182,20 +182,20 @@ Generate plot points for a function.
 
 ### solveEquation
 
-Find a root using Newton-Raphson method.
+Solve f(x)=0 via Newton-Raphson. Returns root value.
 
 - **Params**: `expression`, `variable`, `initialGuess` (double)
 - **Returns**: Root value as string
 - **Throws**: `IllegalArgumentException` if doesn't converge
-- **Example**: `solveEquation("x^2 - 4", "x", 3.0)` → `"2.0"`
+- **Example**: `solveEquation("x^2 - 4", "x", 3.0)` -> `"2.0"`
 
 ### findRoots
 
-Find all roots in an interval using bisection.
+Find all real roots of f(x)=0 in an interval.
 
 - **Params**: `expression`, `variable`, `min` (double), `max` (double)
 - **Returns**: JSON array of root values
-- **Example**: `findRoots("x^2 - 4", "x", -5.0, 5.0)` → `[-2.0, 2.0]`
+- **Example**: `findRoots("x^2 - 4", "x", -5.0, 5.0)` -> `[-2.0, 2.0]`
 
 ---
 
@@ -205,44 +205,44 @@ All calculations use `BigDecimal` with `MathContext.DECIMAL128`. Rates are perce
 
 ### compoundInterest
 
-Compound interest: `P * (1 + r/n)^(n*t)`.
+Compute compound interest. Returns final amount.
 
-- **Params**: `principal`, `annualRate` (%), `years`, `compoundsPerYear`
+- **Params**: `principal` (String), `annualRate` (String, %), `years` (String), `compoundsPerYear` (int)
 - **Returns**: Final amount as string
 
 ### loanPayment
 
-Fixed monthly loan payment (annuity formula).
+Compute fixed monthly loan payment.
 
-- **Params**: `principal`, `annualRate` (%), `years`
+- **Params**: `principal` (String), `annualRate` (String, %), `years` (String)
 - **Returns**: Monthly payment as string
 
 ### presentValue
 
-Present value of a future amount.
+Compute present value of a future amount.
 
-- **Params**: `futureValue`, `annualRate` (%), `years`
+- **Params**: `futureValue` (String), `annualRate` (String, %), `years` (String)
 - **Returns**: Present value as string
 
 ### futureValueAnnuity
 
-Future value of periodic payments.
+Compute future value of an ordinary annuity.
 
-- **Params**: `payment`, `annualRate` (%), `years`
+- **Params**: `payment` (String), `annualRate` (String, %), `years` (String)
 - **Returns**: Future value as string
 
 ### returnOnInvestment
 
-ROI as a percentage.
+Compute ROI as a percentage.
 
-- **Params**: `gain`, `cost` (non-zero)
+- **Params**: `gain` (String), `cost` (String, non-zero)
 - **Returns**: ROI percentage as string
 
 ### amortizationSchedule
 
-Full monthly amortization schedule.
+Generate monthly amortization schedule as JSON.
 
-- **Params**: `principal`, `annualRate` (%), `years`
+- **Params**: `principal` (String), `annualRate` (String, %), `years` (String)
 - **Returns**: JSON array of `{month, payment, principal, interest, balance}`
 
 ---
@@ -253,9 +253,9 @@ Simulates a physical printing/tape calculator.
 
 ### calculateWithTape
 
-Process a sequence of operations and return a formatted tape.
+Tape calculator. Returns printed tape with running totals.
 
-- **Params**: `operations` — JSON array of `{"op":"...", "value":"..."}`
+- **Params**: `operations` -- JSON array of `{"op":"...", "value":"..."}`
 - **Supported ops**: `+`, `-`, `*`, `/`, `=` (subtotal), `C` (clear), `T` (grand total)
 - **Returns**: Multi-line tape string
 
@@ -267,15 +267,15 @@ Expression evaluation using the built-in recursive descent parser.
 
 ### evaluate
 
-Evaluate a mathematical expression.
+Evaluate a math expression. Supports +,-,*,/,^,% and functions.
 
-- **Params**: `expression` — supports `+`, `-`, `*`, `/`, `^`, `%`, parentheses, functions
+- **Params**: `expression` -- supports `+`, `-`, `*`, `/`, `^`, `%`, parentheses, functions
 - **Returns**: Result as string
 - **Functions**: `sin`, `cos`, `tan`, `log`, `log10`, `sqrt`, `abs`, `ceil`, `floor`
 
 ### evaluateWithVariables
 
-Evaluate with variable substitution.
+Evaluate a math expression with variables.
 
 - **Params**: `expression`, `variables` (JSON map, e.g. `{"x": 3.0}`)
 - **Returns**: Result as string

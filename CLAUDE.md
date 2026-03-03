@@ -29,15 +29,16 @@
 
 ## Linting
 
-- **Checkstyle**: `checkstyle.xml` — zero warnings, zero errors
-- **PMD**: `pmd-rules.xml` — console output
+- **Checkstyle 10.23.1**: `checkstyle.xml` -- zero warnings, zero errors
+- **PMD 7.22.0**: `pmd-rules.xml` -- console output
+  - Excluded rules: `UnnecessaryConstructor`, `AtLeastOneConstructor`, `CommentDefaultAccessModifier`
 - **Compiler**: `-Xlint:all -Xlint:-incubating -Werror`
 
 ## Project Structure
 
 - `tool/` — MCP tool classes (`@Component` + `@Tool`)
 - `engine/` — Expression evaluator (static utility)
-- `config/` — Netty transport configuration
+- `config/` — Netty transport config + MCP tool registration
 
 ## Test
 
