@@ -43,11 +43,22 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
-    jvmArgs '--add-modules', 'jdk.incubator.vector'
+    jvmArgs '--add-modules', 'jdk.incubator.vector', '--enable-native-access=ALL-UNNAMED'
 }
 
 tasks.named('bootRun') {
-    jvmArgs '--add-modules', 'jdk.incubator.vector'
+    jvmArgs(
+        '--add-modules', 'jdk.incubator.vector',
+        '--enable-native-access=ALL-UNNAMED',
+        '-XX:+UseZGC',
+        '-Xms256m',
+        '-Xmx512m',
+        '-XX:MaxDirectMemorySize=256m',
+        '-XX:+UseStringDeduplication',
+        '--add-opens', 'java.base/jdk.internal.misc=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.nio=ALL-UNNAMED',
+        '-Dio.netty.tryReflectionSetAccessible=true'
+    )
 }
 
 checkstyle {
