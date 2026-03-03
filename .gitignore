@@ -17,6 +17,8 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+*.plist
+com.archanjo.mathcalculator.plist
 
 # Logs
 *.log
