@@ -19,6 +19,14 @@ graph TD
     D --> I[FinancialCalculatorTool<br/>BigDecimal]
     D --> J[PrintingCalculatorTool<br/>tape/audit]
     D --> K[ProgrammableCalculatorTool<br/>ExpressionEvaluator]
+    D --> L[UnitConverterTool<br/>UnitRegistry]
+    D --> M[CookingConverterTool<br/>UnitRegistry + gas mark]
+    D --> O[MeasureReferenceTool<br/>UnitRegistry lookup]
+    D --> P[DateTimeConverterTool<br/>java.time]
+    D --> NCT[NetworkCalculatorTool<br/>IPv4/IPv6]
+    D --> AET[AnalogElectronicsTool<br/>Ohm's law + RLC]
+    D --> DET[DigitalElectronicsTool<br/>base conversion + 555]
+    D --> CLT[CalculusTool<br/>derivatives + integrals]
 
     style N1 fill:#2d6,stroke:#333
     style N2 fill:#5a5,stroke:#333
@@ -88,6 +96,23 @@ flowchart TD
     PRIMARY --> PAREN["Parenthesized<br/>expression"]
 ```
 
+## Unit Conversion Engine
+
+The `UnitRegistry` is a static utility backed by `UnitCategory` (enum, 21 categories) and `UnitDefinition` (record, code + name + category + toBaseFactor):
+
+```mermaid
+flowchart TD
+    INPUT[Convert value, from, to] --> CHECK{Same category?}
+    CHECK -->|No| ERROR[Error: cross-category]
+    CHECK -->|Yes| TYPE{Category type?}
+    TYPE -->|Linear| LINEAR["result = value * from.toBaseFactor / to.toBaseFactor"]
+    TYPE -->|Temperature| TEMP["value -> toCelsius() -> fromCelsius()"]
+    TYPE -->|Gas Mark| GAS["Lookup table (marks 1-10)"]
+    LINEAR --> OUTPUT[BigDecimal result<br/>DECIMAL128, 34 digits]
+    TEMP --> OUTPUT
+    GAS --> OUTPUT
+```
+
 ## SSE Flow
 
 ```mermaid
@@ -119,6 +144,9 @@ graph TB
         end
         subgraph engine
             EE[ExpressionEvaluator]
+            UC[UnitCategory]
+            UD[UnitDefinition]
+            UR[UnitRegistry]
         end
         subgraph tool
             BCT[BasicCalculatorTool]
@@ -128,6 +156,14 @@ graph TB
             FCT[FinancialCalculatorTool]
             PCT[PrintingCalculatorTool]
             PRCT[ProgrammableCalculatorTool]
+            UCT[UnitConverterTool]
+            CCT[CookingConverterTool]
+            MRT[MeasureReferenceTool]
+            DTCT[DateTimeConverterTool]
+            NCT2[NetworkCalculatorTool]
+            AET2[AnalogElectronicsTool]
+            DET2[DigitalElectronicsTool]
+            CLT2[CalculusTool]
         end
     end
 
@@ -138,6 +174,21 @@ graph TB
     MTC --> FCT
     MTC --> PCT
     MTC --> PRCT
+    MTC --> UCT
+    MTC --> CCT
+    MTC --> MRT
+    MTC --> DTCT
+    MTC --> NCT2
+    MTC --> AET2
+    MTC --> DET2
+    MTC --> CLT2
     GCT --> EE
     PRCT --> EE
+    UCT --> UR
+    CCT --> UR
+    MRT --> UR
+    NCT2 --> UR
+    CLT2 --> EE
+    UR --> UC
+    UR --> UD
 ```

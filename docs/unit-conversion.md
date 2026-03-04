@@ -2,7 +2,7 @@
 
 ## Overview
 
-The unit conversion system supports **15 measurement categories** with precision-first design using `BigDecimal` and `MathContext.DECIMAL128` (34 significant digits).
+The unit conversion system supports **21 measurement categories** with precision-first design using `BigDecimal` and `MathContext.DECIMAL128` (34 significant digits).
 
 ## Architecture
 
@@ -183,6 +183,66 @@ Gas Mark:    lookup table (not linear)
 | arcmin | arcminute | 1/60 (computed) |
 | arcsec | arcsecond | 1/3600 (computed) |
 | turn | turn | 360 |
+
+### DATA_RATE (base: bit per second)
+
+| Code | Name | Factor |
+|------|------|--------|
+| bps | bit per second | 1 |
+| kbps | kilobit per second | 1000 |
+| mbps | megabit per second | 1000000 |
+| gbps | gigabit per second | 1000000000 |
+| tbps | terabit per second | 1000000000000 |
+| byps | byte per second | 8 |
+| kbyps | kilobyte per second | 8000 |
+| mbyps | megabyte per second | 8000000 |
+| gbyps | gigabyte per second | 8000000000 |
+
+### RESISTANCE (base: ohm)
+
+| Code | Name | Factor |
+|------|------|--------|
+| ohm | ohm | 1 |
+| mohm | milliohm | 0.001 |
+| kohm | kilohm | 1000 |
+| megohm | megaohm | 1000000 |
+
+### CAPACITANCE (base: farad)
+
+| Code | Name | Factor |
+|------|------|--------|
+| fd | farad | 1 |
+| mfd | millifarad | 0.001 |
+| uf | microfarad | 0.000001 |
+| nf | nanofarad | 0.000000001 |
+| pf | picofarad | 0.000000000001 |
+
+### INDUCTANCE (base: henry)
+
+| Code | Name | Factor |
+|------|------|--------|
+| hy | henry | 1 |
+| mhy | millihenry | 0.001 |
+| uhy | microhenry | 0.000001 |
+| nhy | nanohenry | 0.000000001 |
+
+### VOLTAGE (base: volt)
+
+| Code | Name | Factor |
+|------|------|--------|
+| vlt | volt | 1 |
+| mvlt | millivolt | 0.001 |
+| kvlt | kilovolt | 1000 |
+| uvlt | microvolt | 0.000001 |
+
+### CURRENT (base: ampere)
+
+| Code | Name | Factor |
+|------|------|--------|
+| amp | ampere | 1 |
+| mamp | milliampere | 0.001 |
+| uamp | microampere | 0.000001 |
+| namp | nanoampere | 0.000000001 |
 
 ## Gas Mark Table
 

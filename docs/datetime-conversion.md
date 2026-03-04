@@ -16,15 +16,19 @@ The `DateTimeConverterTool` provides timezone conversion, format transformation,
 
 ## Supported Input Formats
 
-The tool auto-detects common formats:
+The tool auto-detects common formats (tried in order):
 
 | Format | Example |
 |--------|---------|
 | ISO zoned | `2026-03-03T10:00:00+05:30[Asia/Kolkata]` |
 | ISO offset | `2026-03-03T10:00:00+05:30` |
 | ISO local | `2026-03-03T10:00:00` |
-| Standard | `2026-03-03 10:00:00` |
-| Date only | `2026-03-03` |
+| Standard (yyyy-MM-dd) | `2026-03-03 10:00:00` |
+| DD/MM/YYYY datetime | `03/03/2026 10:00:00` |
+| MM/DD/YYYY datetime | `03/03/2026 10:00:00` |
+| Date only (yyyy-MM-dd) | `2026-03-03` |
+| Date only (dd/MM/yyyy) | `03/03/2026` |
+| Date only (MM/dd/yyyy) | `03/03/2026` |
 
 ## Format Keywords
 
