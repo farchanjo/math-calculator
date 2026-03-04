@@ -2,11 +2,13 @@
 """
 MCP Tool Integration Tests + Benchmark — math-calculator (asyncio)
 
-Validates all 85 MCP tools via Streamable HTTP transport using async I/O:
+Validates all 85 MCP tools via Streamable HTTP transport (POST /mcp) using async I/O:
   - Success cases with precision assertions
   - Error cases (invalid input, domain errors, edge cases)
   - Latency metrics collected for every call
   - Concurrent benchmark with native asyncio concurrency
+
+For dual-transport tests (SSE + Streamable HTTP), see mcp_sse_test.py.
 
 Usage:
     python3 scripts/mcp_test.py                       # tests only
