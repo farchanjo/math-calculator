@@ -22,7 +22,7 @@ python3 scripts/mcp_test.py
 - **Group**: `com.archanjo`
 - **Java**: 25 (toolchain)
 - **Port**: 44321
-- **Transport**: SSE via WebFlux + Netty
+- **Transport**: Streamable HTTP via WebFlux + Netty (endpoint: `POST /mcp`)
 - **MCP type**: SYNC
 
 ## Code Style

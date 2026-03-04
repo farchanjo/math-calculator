@@ -4,7 +4,7 @@
 
 ```mermaid
 graph TD
-    A[MCP Client<br/>Claude Desktop / Inspector] -->|SSE /sse| B[Netty Server]
+    A[MCP Client<br/>Claude Desktop / Inspector] -->|HTTP POST /mcp| B[Netty Server]
     B --> N{Transport Selector}
     N -->|Linux| N1[io_uring<br/>preferred]
     N -->|Linux fallback| N2[epoll]
@@ -113,7 +113,7 @@ flowchart TD
     GAS --> OUTPUT
 ```
 
-## SSE Flow
+## Streamable HTTP Flow
 
 ```mermaid
 sequenceDiagram
@@ -122,14 +122,14 @@ sequenceDiagram
     participant MCP as MCP Server
     participant Tool as Calculator Tool
 
-    Client->>Server: GET /sse (SSE connect)
-    Server-->>Client: SSE stream opened
-    Client->>Server: POST /mcp/message (tool call)
+    Client->>Server: POST /mcp (initialize)
+    Server-->>Client: 200 OK + mcp-session-id header
+    Client->>Server: POST /mcp (tools/call) + mcp-session-id
     Server->>MCP: Route to tool
     MCP->>Tool: Invoke @Tool method
     Tool-->>MCP: Return result
     MCP-->>Server: MCP response
-    Server-->>Client: SSE event (result)
+    Server-->>Client: 200 JSON or 200 text/event-stream (streaming)
 ```
 
 ## Package Structure

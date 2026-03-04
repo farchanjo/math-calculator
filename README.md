@@ -1,6 +1,6 @@
 # Math Calculator — Spring AI MCP Server
 
-A Spring Boot MCP (Model Context Protocol) server that exposes a math calculator via Spring AI. AI clients (Claude Desktop, Claude Code, Cursor, MCP Inspector) invoke calculator operations as MCP tools over SSE transport.
+A Spring Boot MCP (Model Context Protocol) server that exposes a math calculator via Spring AI. AI clients (Claude Desktop, Claude Code, Cursor, MCP Inspector) invoke calculator operations as MCP tools over Streamable HTTP transport.
 
 **Repository**: [https://github.com/farchanjo/math-calculator](https://github.com/farchanjo/math-calculator)
 
@@ -13,7 +13,7 @@ A Spring Boot MCP (Model Context Protocol) server that exposes a math calculator
 | Spring AI    | 2.0.0-M2  | Milestone for Boot 4                               |
 | Gradle       | 9.3.1     | Groovy DSL — `build.gradle`                        |
 | Server       | Netty     | WebFlux — io_uring/epoll/kqueue transport          |
-| Transport    | SSE       | `spring-ai-starter-mcp-server-webflux`             |
+| Transport    | Streamable HTTP | `spring-ai-starter-mcp-server-webflux`        |
 
 ## Build & Run
 
@@ -195,12 +195,12 @@ Trig functions use lookup tables for exact values at notable angles (multiples o
 
 ## Integration
 
-The calculator is available as a hosted MCP server at **`https://calc.archanjo.com/sse`** — no local setup required.
+The calculator is available as a hosted MCP server at **`https://calc.archanjo.com/mcp`** — no local setup required.
 
 ### Claude Code
 
 ```bash
-claude mcp add --transport sse calc https://calc.archanjo.com/sse
+claude mcp add calc https://calc.archanjo.com/mcp
 ```
 
 Or add manually to `~/.claude/mcp.json` (global) or `.claude/mcp.json` (project):
@@ -209,7 +209,7 @@ Or add manually to `~/.claude/mcp.json` (global) or `.claude/mcp.json` (project)
 {
   "mcpServers": {
     "calc": {
-      "url": "https://calc.archanjo.com/sse"
+      "url": "https://calc.archanjo.com/mcp"
     }
   }
 }
@@ -224,8 +224,7 @@ Add to `~/.config/opencode/config.json`:
   "mcp": {
     "servers": {
       "calc": {
-        "url": "https://calc.archanjo.com/sse",
-        "transport": "sse"
+        "url": "https://calc.archanjo.com/mcp"
       }
     }
   }
@@ -240,7 +239,7 @@ Add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "calc": {
-      "url": "https://calc.archanjo.com/sse"
+      "url": "https://calc.archanjo.com/mcp"
     }
   }
 }
@@ -248,10 +247,10 @@ Add to `claude_desktop_config.json`:
 
 ### Other MCP-compatible clients (Cursor, Windsurf, etc.)
 
-Connect via SSE transport to:
+Connect via Streamable HTTP to:
 
 ```
-https://calc.archanjo.com/sse
+https://calc.archanjo.com/mcp
 ```
 
 ### MCP Inspector
@@ -260,12 +259,12 @@ https://calc.archanjo.com/sse
 pnpm dlx @modelcontextprotocol/inspector
 ```
 
-Connect to `https://calc.archanjo.com/sse`.
+Connect to `https://calc.archanjo.com/mcp`.
 
 ### Self-hosted
 
 ```bash
-./gradlew bootRun   # starts on http://localhost:44321/sse
+./gradlew bootRun   # starts on http://localhost:44321/mcp
 ```
 
 ### Integration Test Script
@@ -288,7 +287,7 @@ Runs tests covering all 85 MCP tools with precision validation and error-case co
 
 ```mermaid
 graph TD
-    A[MCP Client] -->|SSE /sse| B[Netty Server]
+    A[MCP Client] -->|HTTP POST /mcp| B[Netty Server]
     B --> N{Transport Selector}
     N -->|Linux| N1[io_uring]
     N -->|Linux fallback| N2[epoll]
