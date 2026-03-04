@@ -1,6 +1,6 @@
 # Math Calculator — Spring AI MCP Server
 
-A Spring Boot MCP (Model Context Protocol) server that exposes a math calculator via Spring AI. AI clients (Claude Desktop, Claude Code, Cursor, MCP Inspector) invoke calculator operations as MCP tools over Streamable HTTP transport.
+A Spring Boot MCP (Model Context Protocol) server that exposes a math calculator via Spring AI. AI clients (Claude Desktop, Claude Code, Cursor, MCP Inspector) invoke calculator operations as MCP tools over dual transport — **Streamable HTTP** and **SSE** — served from the same port.
 
 **Repository**: [https://github.com/farchanjo/math-calculator](https://github.com/farchanjo/math-calculator)
 
@@ -13,7 +13,7 @@ A Spring Boot MCP (Model Context Protocol) server that exposes a math calculator
 | Spring AI    | 2.0.0-M2  | Milestone for Boot 4                               |
 | Gradle       | 9.3.1     | Groovy DSL — `build.gradle`                        |
 | Server       | Netty     | WebFlux — io_uring/epoll/kqueue transport          |
-| Transport    | Streamable HTTP | `spring-ai-starter-mcp-server-webflux`        |
+| Transport    | Streamable HTTP + SSE | Dual transport via `spring-ai-starter-mcp-server-webflux` |
 
 ## Build & Run
 
@@ -193,11 +193,20 @@ Trig functions use lookup tables for exact values at notable angles (multiples o
 | `definiteIntegral`  | `expression`, `variable`, `lower`, `upper`               | Definite integral over interval (composite Simpson's rule).|
 | `tangentLine`       | `expression`, `variable`, `point`                        | Equation of tangent line at a point.                       |
 
+## Endpoints
+
+Both transports are served from the same Netty port (default `44321`):
+
+| Transport | Endpoints | Clients |
+|---|---|---|
+| Streamable HTTP | `POST /mcp` | Claude Code, OpenCode, Cursor, Windsurf |
+| SSE | `GET /sse` + `POST /mcp/message` | Claude Desktop, MCP Inspector, legacy clients |
+
 ## Integration
 
-The calculator is available as a hosted MCP server at **`https://calc.archanjo.com/mcp`** — no local setup required.
+The calculator is available as a hosted MCP server — no local setup required.
 
-### Claude Code
+### Claude Code (Streamable HTTP)
 
 ```bash
 claude mcp add calc https://calc.archanjo.com/mcp
@@ -215,7 +224,7 @@ Or add manually to `~/.claude/mcp.json` (global) or `.claude/mcp.json` (project)
 }
 ```
 
-### OpenCode
+### OpenCode (Streamable HTTP)
 
 Add to `~/.config/opencode/config.json`:
 
@@ -231,7 +240,7 @@ Add to `~/.config/opencode/config.json`:
 }
 ```
 
-### Claude Desktop
+### Claude Desktop (SSE)
 
 Add to `claude_desktop_config.json`:
 
@@ -239,7 +248,7 @@ Add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "calc": {
-      "url": "https://calc.archanjo.com/mcp"
+      "url": "https://calc.archanjo.com/sse"
     }
   }
 }
@@ -259,41 +268,49 @@ https://calc.archanjo.com/mcp
 pnpm dlx @modelcontextprotocol/inspector
 ```
 
-Connect to `https://calc.archanjo.com/mcp`.
+Connect via SSE to `https://calc.archanjo.com/sse` or Streamable HTTP to `https://calc.archanjo.com/mcp`.
 
 ### Self-hosted
 
 ```bash
-./gradlew bootRun   # starts on http://localhost:44321/mcp
+./gradlew bootRun   # starts on http://localhost:44321
 ```
 
-### Integration Test Script
+Endpoints available at `http://localhost:44321/mcp` (Streamable HTTP) and `http://localhost:44321/sse` (SSE).
+
+### Integration Test Scripts
 
 ```bash
-python3 scripts/mcp_test.py              # default: http://localhost:44321
-python3 scripts/mcp_test.py --base http://host:port
-```
+# Streamable HTTP — full suite (320 tests + optional benchmark)
+python3 scripts/mcp_test.py
 
-Runs tests covering all 85 MCP tools with precision validation and error-case coverage.
+# Dual-transport — validates both SSE and Streamable HTTP (26 tests)
+python3 scripts/mcp_sse_test.py
+
+# Custom server URL
+python3 scripts/mcp_test.py --base http://host:port
+python3 scripts/mcp_sse_test.py --base http://host:port
+```
 
 ## Design Principles
 
 - **Precision**: `BigDecimal` for exact basic/financial/graphing arithmetic, `StrictMath` + notable-angle lookup tables for reproducible scientific functions
 - **SIMD**: Java 25 Vector API (`jdk.incubator.vector`) for hardware-accelerated batch array operations
-- **Transport**: Netty with io_uring (Linux), epoll, kqueue (macOS), NIO fallback
+- **Dual transport**: Streamable HTTP + SSE on the same Netty port (io_uring, epoll, kqueue, NIO)
 - **Virtual threads**: `spring.threads.virtual.enabled=true` for lightweight concurrency
 
 ## Architecture
 
 ```mermaid
 graph TD
-    A[MCP Client] -->|HTTP POST /mcp| B[Netty Server]
+    A1[MCP Client<br/>Claude Code / OpenCode / modern] -->|POST /mcp<br/>Streamable HTTP| B[Netty Server]
+    A2[MCP Client<br/>Claude Desktop / Inspector / legacy] -->|GET /sse + POST /mcp/message<br/>SSE| B
     B --> N{Transport Selector}
     N -->|Linux| N1[io_uring]
     N -->|Linux fallback| N2[epoll]
     N -->|macOS| N3[kqueue]
     N -->|fallback| N4[NIO]
-    B --> C[MCP Server Auto-Config]
+    B --> C[McpTransportConfig<br/>Dual Transport]
     C --> D[McpToolConfig<br/>MethodToolCallbackProvider]
     D --> E[BasicCalculatorTool]
     D --> F[ScientificCalculatorTool]

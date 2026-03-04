@@ -13,7 +13,8 @@
 ./gradlew test         # tests only
 
 # MCP integration tests (requires bootRun on port 44321)
-python3 scripts/mcp_test.py
+python3 scripts/mcp_test.py        # Streamable HTTP — full suite (320 tests)
+python3 scripts/mcp_sse_test.py    # dual-transport — SSE + Streamable HTTP (26 tests)
 ```
 
 ## Conventions
@@ -22,7 +23,7 @@ python3 scripts/mcp_test.py
 - **Group**: `com.archanjo`
 - **Java**: 25 (toolchain)
 - **Port**: 44321
-- **Transport**: Streamable HTTP via WebFlux + Netty (endpoint: `POST /mcp`)
+- **Transport**: Dual — Streamable HTTP (`POST /mcp`) + SSE (`GET /sse`, `POST /mcp/message`) via WebFlux + Netty
 - **MCP type**: SYNC
 
 ## Code Style
@@ -57,7 +58,7 @@ python3 scripts/mcp_test.py
 - `engine/` — Expression evaluator + unit conversion registry
   - `ExpressionEvaluator` — recursive descent parser
   - `UnitCategory`, `UnitDefinition`, `UnitRegistry` — unit conversion engine
-- `config/` — Netty transport config + MCP tool registration
+- `config/` — Dual MCP transport wiring (`McpTransportConfig`), Netty I/O selector (`NettyTransportConfig`), tool registration (`McpToolConfig`)
 - `scripts/` — Python MCP integration test scripts
 - `docs/` — Project documentation (architecture, MCP tools, unit conversion, datetime conversion)
 

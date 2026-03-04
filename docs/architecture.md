@@ -4,13 +4,14 @@
 
 ```mermaid
 graph TD
-    A[MCP Client<br/>Claude Desktop / Inspector] -->|HTTP POST /mcp| B[Netty Server]
+    A1[MCP Client<br/>Claude Code / OpenCode / modern] -->|HTTP POST /mcp<br/>Streamable HTTP| B[Netty Server]
+    A2[MCP Client<br/>Claude Desktop / Inspector / legacy] -->|GET /sse + POST /mcp/message<br/>SSE| B
     B --> N{Transport Selector}
     N -->|Linux| N1[io_uring<br/>preferred]
     N -->|Linux fallback| N2[epoll]
     N -->|macOS| N3[kqueue]
     N -->|fallback| N4[NIO]
-    B --> C[MCP Server Auto-Config]
+    B --> C[McpTransportConfig<br/>Dual Transport]
     C --> D[McpToolConfig<br/>MethodToolCallbackProvider]
     D --> E[BasicCalculatorTool<br/>BigDecimal]
     D --> F[ScientificCalculatorTool<br/>StrictMath + lookup tables]
@@ -113,7 +114,11 @@ flowchart TD
     GAS --> OUTPUT
 ```
 
-## Streamable HTTP Flow
+## MCP Transport Flows
+
+### Streamable HTTP (POST /mcp)
+
+Used by Claude Code, OpenCode, and other modern MCP clients.
 
 ```mermaid
 sequenceDiagram
@@ -132,6 +137,29 @@ sequenceDiagram
     Server-->>Client: 200 JSON or 200 text/event-stream (streaming)
 ```
 
+### SSE (GET /sse + POST /mcp/message)
+
+Used by Claude Desktop, MCP Inspector, and legacy MCP clients.
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP Client
+    participant Server as Netty/WebFlux
+    participant MCP as MCP Server
+    participant Tool as Calculator Tool
+
+    Client->>Server: GET /sse
+    Server-->>Client: SSE endpoint event (message URL)
+    Client->>Server: POST /mcp/message (initialize)
+    Server-->>Client: 200 OK + session
+    Client->>Server: POST /mcp/message (tools/call)
+    Server->>MCP: Route to tool
+    MCP->>Tool: Invoke @Tool method
+    Tool-->>MCP: Return result
+    MCP-->>Server: MCP response
+    Server-->>Client: 200 JSON-RPC response
+```
+
 ## Package Structure
 
 ```mermaid
@@ -140,6 +168,7 @@ graph TB
         APP[MathCalculatorApplication]
         subgraph config
             NTC[NettyTransportConfig]
+            MTPC[McpTransportConfig]
             MTC[McpToolConfig]
         end
         subgraph engine
