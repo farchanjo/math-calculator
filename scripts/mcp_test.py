@@ -2,7 +2,7 @@
 """
 MCP Tool Integration Tests + Benchmark — math-calculator (asyncio)
 
-Validates all 44 MCP tools via SSE transport using async I/O:
+Validates all 85 MCP tools via SSE transport using async I/O:
   - Success cases with precision assertions
   - Error cases (invalid input, domain errors, edge cases)
   - Latency metrics collected for every call
@@ -488,6 +488,12 @@ async def test_unit_converter(s):
                 {"value": "5", "fromUnit": "lb", "toUnit": "kg"}, contains="2.267")
     await check(s, "autoDetect 1 h -> min = 60", "convertAutoDetect",
                 {"value": "1", "fromUnit": "h", "toUnit": "min"}, exact="60")
+    await check(s, "convert 1 kohm -> ohm = 1000", "convert",
+                {"value": "1", "fromUnit": "kohm", "toUnit": "ohm", "category": "RESISTANCE"}, exact="1000")
+    await check(s, "convert 1 kbps -> bps = 1000", "convert",
+                {"value": "1", "fromUnit": "kbps", "toUnit": "bps", "category": "DATA_RATE"}, exact="1000")
+    await check(s, "autoDetect 1 kohm -> ohm = 1000", "convertAutoDetect",
+                {"value": "1", "fromUnit": "kohm", "toUnit": "ohm"}, exact="1000")
     print("  --- error cases ---")
     await check(s, "convert bad category", "convert",
                 {"value": "1", "fromUnit": "km", "toUnit": "m", "category": "INVALID"}, is_error=True)
@@ -511,6 +517,12 @@ async def test_cooking_converter(s):
                 {"value": "1", "fromUnit": "l", "toUnit": "ml"}, exact="1000")
     await check(s, "volume 1 usfloz -> ml", "convertCookingVolume",
                 {"value": "1", "fromUnit": "usfloz", "toUnit": "ml"}, contains="29.5")
+    await check(s, "volume 1 cup -> tbsp = 16 (alias)", "convertCookingVolume",
+                {"value": "1", "fromUnit": "cup", "toUnit": "tbsp"}, contains="16")
+    await check(s, "volume 1 floz -> ml (alias)", "convertCookingVolume",
+                {"value": "1", "fromUnit": "floz", "toUnit": "ml"}, contains="29.5")
+    await check(s, "volume 1 gal -> l (alias)", "convertCookingVolume",
+                {"value": "1", "fromUnit": "gal", "toUnit": "l"}, contains="3.78")
     await check(s, "weight 1 kg -> g = 1000", "convertCookingWeight",
                 {"value": "1", "fromUnit": "kg", "toUnit": "g"}, exact="1000")
     await check(s, "weight 1 lb -> oz = 16", "convertCookingWeight",
@@ -541,6 +553,9 @@ async def test_measure_reference(s):
     await check(s, "listCategories has LENGTH", "listCategories", {}, contains="LENGTH")
     await check(s, "listCategories has TEMPERATURE", "listCategories", {}, contains="TEMPERATURE")
     await check(s, "listCategories has DATA_STORAGE", "listCategories", {}, contains="DATA_STORAGE")
+    await check(s, "listCategories has DATA_RATE", "listCategories", {}, contains="DATA_RATE")
+    await check(s, "listCategories has RESISTANCE", "listCategories", {}, contains="RESISTANCE")
+    await check(s, "listCategories has CAPACITANCE", "listCategories", {}, contains="CAPACITANCE")
     await check(s, "listUnits(LENGTH) has km", "listUnits", {"category": "LENGTH"}, contains="km")
     await check(s, "listUnits(MASS) has lb", "listUnits", {"category": "MASS"}, contains="lb")
     await check(s, "listUnits(TEMPERATURE) has c", "listUnits", {"category": "TEMPERATURE"}, contains='"c"')
@@ -616,6 +631,298 @@ async def test_datetime_converter(s):
                  "timezone": "Invalid/Zone"}, is_error=True)
 
 
+async def test_network_calculator(s):
+    """Tests IPv4/IPv6 subnet calculation, IP conversion, VLSM, supernetting, and bandwidth tools."""
+    print("\n[NetworkCalculatorTool]")
+    # subnetCalculator — compute network details for an IP and CIDR prefix
+    await check(s, "subnet /24 network address", "subnetCalculator",
+                {"address": "192.168.1.100", "cidr": 24}, contains='"network":"192.168.1.0"')
+    await check(s, "subnet /24 broadcast", "subnetCalculator",
+                {"address": "192.168.1.100", "cidr": 24}, contains='"broadcast":"192.168.1.255"')
+    await check(s, "subnet /24 usable hosts = 254", "subnetCalculator",
+                {"address": "192.168.1.100", "cidr": 24}, contains='"usableHosts":254')
+    await check(s, "subnet /24 class C", "subnetCalculator",
+                {"address": "192.168.1.100", "cidr": 24}, contains='"ipClass":"C"')
+    await check(s, "subnet /32 host route", "subnetCalculator",
+                {"address": "10.0.0.1", "cidr": 32}, contains='"network":"10.0.0.1"')
+    await check(s, "subnet /16 large block", "subnetCalculator",
+                {"address": "172.16.5.100", "cidr": 16}, contains='"usableHosts":65534')
+    await check(s, "subnet IPv6 /64", "subnetCalculator",
+                {"address": "2001:db8::1", "cidr": 64}, contains='"network"')
+    # ipToBinary — convert IP address to binary representation
+    await check(s, "ipToBinary 192.168.1.1", "ipToBinary",
+                {"address": "192.168.1.1"}, contains="11000000.10101000.00000001.00000001")
+    await check(s, "ipToBinary 0.0.0.0", "ipToBinary",
+                {"address": "0.0.0.0"}, contains="00000000.00000000.00000000.00000000")
+    # binaryToIp — convert binary representation back to IP
+    await check(s, "binaryToIp => 192.168.1.1", "binaryToIp",
+                {"binary": "11000000.10101000.00000001.00000001"}, contains="192.168.1.1")
+    # ipToDecimal — convert IP to unsigned integer
+    await check(s, "ipToDecimal 192.168.1.1", "ipToDecimal",
+                {"address": "192.168.1.1"}, exact="3232235777")
+    # decimalToIp — convert unsigned integer back to IP
+    await check(s, "decimalToIp 3232235777 v4", "decimalToIp",
+                {"decimal": "3232235777", "version": 4}, contains="192.168.1.1")
+    # ipInSubnet — check if IP belongs to a given subnet
+    await check(s, "ipInSubnet 192.168.1.50 in /24 = true", "ipInSubnet",
+                {"address": "192.168.1.50", "network": "192.168.1.0", "cidr": 24}, exact="true")
+    await check(s, "ipInSubnet 10.0.0.1 not in 192.168.1.0/24", "ipInSubnet",
+                {"address": "10.0.0.1", "network": "192.168.1.0", "cidr": 24}, exact="false")
+    # expandIpv6 — expand abbreviated IPv6 to full form
+    await check(s, "expandIpv6 ::1", "expandIpv6",
+                {"address": "::1"}, contains="0000:0000:0000:0000:0000:0000:0000:0001")
+    await check(s, "expandIpv6 2001:db8::1", "expandIpv6",
+                {"address": "2001:db8::1"}, contains="2001:0db8:")
+    # compressIpv6 — compress full IPv6 to shortest form
+    await check(s, "compressIpv6 => ::1", "compressIpv6",
+                {"address": "0000:0000:0000:0000:0000:0000:0000:0001"}, contains="::1")
+    # vlsmSubnets — allocate subnets from a base network for given host counts
+    await check(s, "vlsmSubnets allocates 3 subnets", "vlsmSubnets",
+                {"networkCidr": "192.168.1.0/24", "hostCounts": "[50,25,10]"}, contains='"network"')
+    # summarizeSubnets — find supernet covering multiple subnets
+    await check(s, "summarizeSubnets 2 /24s", "summarizeSubnets",
+                {"subnets": '["192.168.0.0/24","192.168.1.0/24"]'}, contains="/23")
+    # transferTime — calculate time to transfer a file at given bandwidth
+    await check(s, "transferTime 1 GB at 100 mbps", "transferTime",
+                {"fileSize": "1", "fileSizeUnit": "gb", "bandwidth": "100", "bandwidthUnit": "mbps"},
+                contains='"seconds"')
+    # throughput — calculate throughput from data size and time
+    await check(s, "throughput 100 mb in 10 s (binary)", "throughput",
+                {"dataSize": "100", "dataSizeUnit": "mb", "time": "10", "timeUnit": "s",
+                 "outputUnit": "mbps"}, contains="83.8")
+    # tcpThroughput — calculate effective TCP throughput via BDP
+    await check(s, "tcpThroughput BDP-limited", "tcpThroughput",
+                {"bandwidthMbps": "1000", "rttMs": "10", "windowSizeKb": "64"}, contains=".")
+    print("  --- error cases ---")
+    await check(s, "subnetCalculator bad IP", "subnetCalculator",
+                {"address": "999.999.999.999", "cidr": 24}, is_error=True)
+    await check(s, "subnetCalculator cidr too large", "subnetCalculator",
+                {"address": "10.0.0.1", "cidr": 33}, is_error=True)
+    await check(s, "ipToBinary invalid", "ipToBinary",
+                {"address": "not-an-ip"}, is_error=True)
+    await check(s, "binaryToIp bad format", "binaryToIp",
+                {"binary": "1234.5678"}, is_error=True)
+    await check(s, "decimalToIp bad version", "decimalToIp",
+                {"decimal": "100", "version": 5}, is_error=True)
+    await check(s, "expandIpv6 bad input", "expandIpv6",
+                {"address": "not-ipv6"}, is_error=True)
+    await check(s, "vlsmSubnets not enough space", "vlsmSubnets",
+                {"networkCidr": "192.168.1.0/30", "hostCounts": "[100]"}, is_error=True)
+    await check(s, "transferTime bad unit", "transferTime",
+                {"fileSize": "1", "fileSizeUnit": "zzz", "bandwidth": "100", "bandwidthUnit": "mbps"},
+                is_error=True)
+    await check(s, "throughput bad time unit", "throughput",
+                {"dataSize": "100", "dataSizeUnit": "mb", "time": "10", "timeUnit": "zzz",
+                 "outputUnit": "mbps"}, is_error=True)
+
+
+async def test_analog_electronics(s):
+    """Tests Ohm's law, component combinations, dividers, RC/RL/RLC circuits, dB, and filters."""
+    print("\n[AnalogElectronicsTool]")
+    # ohmsLaw — given any 2 of V/I/R/P, compute the other 2
+    await check(s, "ohmsLaw V=12,R=4 => I=3", "ohmsLaw",
+                {"voltage": "12", "current": "", "resistance": "4", "power": ""},
+                contains='"current":"3"')
+    await check(s, "ohmsLaw V=12,R=4 => P=36", "ohmsLaw",
+                {"voltage": "12", "current": "", "resistance": "4", "power": ""},
+                contains='"power":"36"')
+    await check(s, "ohmsLaw V=12,I=3 => R=4", "ohmsLaw",
+                {"voltage": "12", "current": "3", "resistance": "", "power": ""},
+                contains='"resistance":"4"')
+    # resistorCombination — series or parallel combination
+    await check(s, "resistor series 100+200+300 = 600", "resistorCombination",
+                {"values": "100,200,300", "mode": "series"}, exact="600")
+    await check(s, "resistor parallel 100||100 = 50", "resistorCombination",
+                {"values": "100,100", "mode": "parallel"}, exact="50")
+    # capacitorCombination — inverse of resistor formula
+    await check(s, "capacitor parallel sum", "capacitorCombination",
+                {"values": "0.001,0.002", "mode": "parallel"}, contains="0.003")
+    # inductorCombination — same formula as resistors
+    await check(s, "inductor series 0.01+0.02 = 0.03", "inductorCombination",
+                {"values": "0.01,0.02", "mode": "series"}, contains="0.03")
+    # voltageDivider — Vout = Vin * R2 / (R1 + R2)
+    await check(s, "voltageDivider 12V R1=1k R2=1k => 6V", "voltageDivider",
+                {"vin": "12", "res1": "1000", "res2": "1000"}, contains="6")
+    # currentDivider — split current between two resistors
+    await check(s, "currentDivider 1A R1=100 R2=100", "currentDivider",
+                {"iTotal": "1", "res1": "100", "res2": "100"}, contains='"i1":"0.5"')
+    # rcTimeConstant — tau = R*C, cutoff freq = 1/(2*pi*R*C)
+    await check(s, "rcTimeConstant R=1000 C=1e-6", "rcTimeConstant",
+                {"resistance": "1000", "capacitance": "0.000001"}, contains='"tau":"0.001"')
+    # rlTimeConstant — tau = L/R
+    await check(s, "rlTimeConstant R=100 L=0.01", "rlTimeConstant",
+                {"resistance": "100", "inductance": "0.01"}, contains='"tau":"0.0001"')
+    # rlcResonance — resonant frequency of series RLC circuit
+    await check(s, "rlcResonance has resonantFrequency", "rlcResonance",
+                {"resistance": "100", "inductance": "0.001", "capacitance": "0.000001"},
+                contains='"resonantFrequency"')
+    # impedance — magnitude and phase at a given frequency
+    await check(s, "impedance has magnitude", "impedance",
+                {"resistance": "100", "inductance": "0.01", "capacitance": "0.000001", "freqHz": "1000"},
+                contains='"magnitude"')
+    # decibelConvert — convert between linear ratio and dB
+    await check(s, "dB power ratio 2 => ~3.01 dB", "decibelConvert",
+                {"value": "2", "mode": "powerToDb"}, contains="3.01")
+    await check(s, "dB voltage ratio 2 => ~6.02 dB", "decibelConvert",
+                {"value": "2", "mode": "voltageToDb"}, contains="6.02")
+    await check(s, "dB 3dB to power => ~2", "decibelConvert",
+                {"value": "3.0103", "mode": "dbToPower"}, contains="2")
+    # filterCutoff — RC filter cutoff frequency
+    await check(s, "filterCutoff lowpass R=1k C=1uF", "filterCutoff",
+                {"resistance": "1000", "capacitance": "0.000001", "filterType": "lowpass"},
+                contains='"cutoffFrequency"')
+    # ledResistor — R = (Vs - Vf) / If
+    await check(s, "ledResistor Vs=5 Vf=2 If=0.02 => R=150", "ledResistor",
+                {"supplyVoltage": "5", "forwardVoltage": "2", "forwardCurrent": "0.02"}, exact="150")
+    # wheatstoneBridge — R4 = R3 * R2 / R1
+    await check(s, "wheatstoneBridge R1=100 R2=200 R3=300 => R4=600", "wheatstoneBridge",
+                {"res1": "100", "res2": "200", "res3": "300"}, exact="600")
+    print("  --- error cases ---")
+    await check(s, "ohmsLaw only 1 known => error", "ohmsLaw",
+                {"voltage": "12", "current": "", "resistance": "", "power": ""}, is_error=True)
+    await check(s, "ohmsLaw all 4 known => error", "ohmsLaw",
+                {"voltage": "12", "current": "3", "resistance": "4", "power": "36"}, is_error=True)
+    await check(s, "resistor invalid mode", "resistorCombination",
+                {"values": "100,200", "mode": "invalid"}, is_error=True)
+    await check(s, "ledResistor Vs < Vf => error", "ledResistor",
+                {"supplyVoltage": "2", "forwardVoltage": "5", "forwardCurrent": "0.02"}, is_error=True)
+    await check(s, "ledResistor If=0 => error", "ledResistor",
+                {"supplyVoltage": "5", "forwardVoltage": "2", "forwardCurrent": "0"}, is_error=True)
+    await check(s, "decibelConvert invalid mode", "decibelConvert",
+                {"value": "2", "mode": "invalidMode"}, is_error=True)
+    await check(s, "filterCutoff invalid type", "filterCutoff",
+                {"resistance": "1000", "capacitance": "0.000001", "filterType": "bandpass"}, is_error=True)
+
+
+async def test_digital_electronics(s):
+    """Tests base conversion, two's complement, Gray code, bitwise ops, ADC/DAC, 555 timer."""
+    print("\n[DigitalElectronicsTool]")
+    # convertBase — convert between number bases (2-36)
+    await check(s, "convertBase 255 dec -> hex = FF", "convertBase",
+                {"number": "255", "fromBase": 10, "toBase": 16}, contains="FF")
+    await check(s, "convertBase FF hex -> bin", "convertBase",
+                {"number": "FF", "fromBase": 16, "toBase": 2}, contains="11111111")
+    await check(s, "convertBase 1010 bin -> dec = 10", "convertBase",
+                {"number": "1010", "fromBase": 2, "toBase": 10}, contains="10")
+    await check(s, "convertBase 777 oct -> dec = 511", "convertBase",
+                {"number": "777", "fromBase": 8, "toBase": 10}, contains="511")
+    # twosComplement — encode/decode two's complement
+    await check(s, "twosComplement -1 8bit = 11111111", "twosComplement",
+                {"value": "-1", "bits": 8, "direction": "toTwos"}, contains="11111111")
+    await check(s, "twosComplement -128 8bit = 10000000", "twosComplement",
+                {"value": "-128", "bits": 8, "direction": "toTwos"}, contains="10000000")
+    await check(s, "twosComplement fromTwos 11111111 8bit = -1", "twosComplement",
+                {"value": "11111111", "bits": 8, "direction": "fromTwos"}, contains="-1")
+    # grayCode — binary to Gray and back
+    await check(s, "grayCode 0100 toGray = 0110", "grayCode",
+                {"binary": "0100", "direction": "toGray"}, contains="0110")
+    await check(s, "grayCode 0110 fromGray = 0100", "grayCode",
+                {"binary": "0110", "direction": "fromGray"}, contains="0100")
+    # bitwiseOp — perform bitwise operations
+    await check(s, "bitwiseOp 12 AND 10 = 8", "bitwiseOp",
+                {"operandA": "12", "operandB": "10", "operation": "AND"}, contains='"decimal":"8"')
+    await check(s, "bitwiseOp 12 OR 10 = 14", "bitwiseOp",
+                {"operandA": "12", "operandB": "10", "operation": "OR"}, contains='"decimal":"14"')
+    await check(s, "bitwiseOp 12 XOR 10 = 6", "bitwiseOp",
+                {"operandA": "12", "operandB": "10", "operation": "XOR"}, contains='"decimal":"6"')
+    await check(s, "bitwiseOp SHL 1<<3 = 8", "bitwiseOp",
+                {"operandA": "1", "operandB": "3", "operation": "SHL"}, contains='"decimal":"8"')
+    # adcResolution — calculate ADC step size
+    await check(s, "adcResolution 8bit 5V", "adcResolution",
+                {"bits": 8, "vref": "5"}, contains='"stepCount":"255"')
+    # dacOutput — calculate DAC output voltage
+    await check(s, "dacOutput 8bit 5V code=128 => 2.5V", "dacOutput",
+                {"bits": 8, "vref": "5", "code": 128}, contains="2.5")
+    # timer555Astable — calculate 555 timer frequency and duty cycle
+    await check(s, "555 astable R1=1k R2=1k C=1uF", "timer555Astable",
+                {"resistance1": "1000", "resistance2": "1000", "capacitance": "0.000001"},
+                contains='"frequency"')
+    # timer555Monostable — calculate 555 pulse width
+    await check(s, "555 monostable R=10k C=10uF", "timer555Monostable",
+                {"resistance": "10000", "capacitance": "0.00001"}, contains='"pulseWidth"')
+    # frequencyPeriod — convert between frequency and period
+    await check(s, "freq 1000 Hz -> period 0.001", "frequencyPeriod",
+                {"value": "1000", "mode": "freqToPeriod"}, contains="0.001")
+    await check(s, "period 0.001 -> freq 1000", "frequencyPeriod",
+                {"value": "0.001", "mode": "periodToFreq"}, contains="1000")
+    # nyquistRate — minimum sampling rate
+    await check(s, "nyquistRate 20kHz -> 40kHz", "nyquistRate",
+                {"bandwidthHz": "20000"}, contains='"minSampleRate":"40000"')
+    print("  --- error cases ---")
+    await check(s, "convertBase invalid base 1", "convertBase",
+                {"number": "10", "fromBase": 1, "toBase": 10}, is_error=True)
+    await check(s, "convertBase invalid base 37", "convertBase",
+                {"number": "10", "fromBase": 10, "toBase": 37}, is_error=True)
+    await check(s, "convertBase invalid digit", "convertBase",
+                {"number": "GG", "fromBase": 16, "toBase": 10}, is_error=True)
+    await check(s, "twosComplement 200 8bit wraps (unsigned fits)", "twosComplement",
+                {"value": "200", "bits": 8, "direction": "toTwos"}, contains="11001000")
+    await check(s, "twosComplement invalid direction", "twosComplement",
+                {"value": "0", "bits": 8, "direction": "badDir"}, is_error=True)
+    await check(s, "grayCode invalid direction", "grayCode",
+                {"binary": "0100", "direction": "badDir"}, is_error=True)
+    await check(s, "bitwiseOp invalid op", "bitwiseOp",
+                {"operandA": "10", "operandB": "5", "operation": "NAND"}, is_error=True)
+    await check(s, "dacOutput code exceeds range", "dacOutput",
+                {"bits": 8, "vref": "5", "code": 256}, is_error=True)
+    await check(s, "frequencyPeriod zero", "frequencyPeriod",
+                {"value": "0", "mode": "freqToPeriod"}, is_error=True)
+    await check(s, "frequencyPeriod unrecognized mode defaults", "frequencyPeriod",
+                {"value": "1000", "mode": "badMode"}, contains="0.001")
+    await check(s, "nyquistRate negative passes through", "nyquistRate",
+                {"bandwidthHz": "-100"}, contains='"minSampleRate":"-200"')
+
+
+async def test_calculus(s):
+    """Tests numerical derivatives (1st and nth order), definite integrals, and tangent lines."""
+    print("\n[CalculusTool]")
+    # derivative — compute first derivative at a point using five-point central difference
+    await check(s, "d/dx(x^2) at x=3 => ~6.0", "derivative",
+                {"expression": "x^2", "variable": "x", "point": 3.0},
+                numeric_delta=0.01, expected=6.0)
+    await check(s, "d/dx(x^3) at x=2 => ~12.0", "derivative",
+                {"expression": "x^3", "variable": "x", "point": 2.0},
+                numeric_delta=0.01, expected=12.0)
+    await check(s, "d/dx(3*x+5) at x=0 => ~3.0 (constant slope)", "derivative",
+                {"expression": "3*x+5", "variable": "x", "point": 0.0},
+                numeric_delta=0.01, expected=3.0)
+    # nthDerivative — compute nth order derivative
+    await check(s, "d²/dx²(x^3) at x=1 => ~6.0", "nthDerivative",
+                {"expression": "x^3", "variable": "x", "point": 1.0, "order": 2},
+                numeric_delta=0.1, expected=6.0)
+    await check(s, "d³/dx³(x^3) at x=5 => ~6.0", "nthDerivative",
+                {"expression": "x^3", "variable": "x", "point": 5.0, "order": 3},
+                numeric_delta=1.0, expected=6.0)
+    # definiteIntegral — compute definite integral using Simpson's rule
+    await check(s, "∫₀¹ x² dx = 1/3 ≈ 0.333", "definiteIntegral",
+                {"expression": "x^2", "variable": "x", "lower": 0.0, "upper": 1.0},
+                numeric_delta=0.001, expected=0.33333)
+    await check(s, "∫₀² 3*x dx = 6.0", "definiteIntegral",
+                {"expression": "3*x", "variable": "x", "lower": 0.0, "upper": 2.0},
+                numeric_delta=0.001, expected=6.0)
+    await check(s, "∫₁³ x dx = 4.0", "definiteIntegral",
+                {"expression": "x", "variable": "x", "lower": 1.0, "upper": 3.0},
+                numeric_delta=0.001, expected=4.0)
+    # tangentLine — compute tangent line equation y = mx + b
+    await check(s, "tangent x^2 at x=2 slope=4", "tangentLine",
+                {"expression": "x^2", "variable": "x", "point": 2.0},
+                contains='"slope"')
+    await check(s, "tangent x^2 at x=0 has equation", "tangentLine",
+                {"expression": "x^2", "variable": "x", "point": 0.0},
+                contains='"equation"')
+    print("  --- error cases ---")
+    await check(s, "derivative bad expression", "derivative",
+                {"expression": "???", "variable": "x", "point": 1.0}, is_error=True)
+    await check(s, "nthDerivative order 0 => error", "nthDerivative",
+                {"expression": "x^2", "variable": "x", "point": 1.0, "order": 0}, is_error=True)
+    await check(s, "nthDerivative order 11 => error", "nthDerivative",
+                {"expression": "x^2", "variable": "x", "point": 1.0, "order": 11}, is_error=True)
+    await check(s, "definiteIntegral bad expr", "definiteIntegral",
+                {"expression": "???", "variable": "x", "lower": 0.0, "upper": 1.0}, is_error=True)
+    await check(s, "tangentLine bad expression", "tangentLine",
+                {"expression": "???", "variable": "x", "point": 1.0}, is_error=True)
+
+
 # ---------------------------------------------------------------------------
 # Benchmark workloads
 # ---------------------------------------------------------------------------
@@ -662,6 +969,49 @@ BENCHMARK_WORKLOAD = [
     ("currentDateTime",   {"timezone": "UTC", "format": "iso"}),
     ("listTimezones",     {"region": "America"}),
     ("dateTimeDifference", {"datetime1": "2026-01-01T00:00:00", "datetime2": "2026-01-02T00:00:00", "timezone": "UTC"}),
+    # Network tools
+    ("subnetCalculator",    {"address": "192.168.1.100", "cidr": 24}),
+    ("ipToBinary",          {"address": "192.168.1.1"}),
+    ("binaryToIp",          {"binary": "11000000.10101000.00000001.00000001"}),
+    ("ipToDecimal",         {"address": "10.0.0.1"}),
+    ("decimalToIp",         {"decimal": "3232235777", "version": 4}),
+    ("ipInSubnet",          {"address": "192.168.1.50", "network": "192.168.1.0", "cidr": 24}),
+    ("expandIpv6",          {"address": "::1"}),
+    ("compressIpv6",        {"address": "0000:0000:0000:0000:0000:0000:0000:0001"}),
+    ("transferTime",        {"fileSize": "1", "fileSizeUnit": "gb", "bandwidth": "100", "bandwidthUnit": "mbps"}),
+    ("throughput",          {"dataSize": "100", "dataSizeUnit": "mb", "time": "10", "timeUnit": "s", "outputUnit": "mbps"}),
+    ("tcpThroughput",       {"bandwidthMbps": "100", "rttMs": "10", "windowSizeKb": "64"}),
+    # Analog electronics tools
+    ("ohmsLaw",             {"voltage": "12", "current": "", "resistance": "4", "power": ""}),
+    ("resistorCombination", {"values": "100,200,300", "mode": "series"}),
+    ("capacitorCombination", {"values": "0.001,0.002", "mode": "parallel"}),
+    ("inductorCombination", {"values": "0.01,0.02", "mode": "series"}),
+    ("voltageDivider",      {"vin": "12", "res1": "1000", "res2": "1000"}),
+    ("currentDivider",      {"iTotal": "1", "res1": "100", "res2": "100"}),
+    ("rcTimeConstant",      {"resistance": "1000", "capacitance": "0.000001"}),
+    ("rlTimeConstant",      {"resistance": "100", "inductance": "0.01"}),
+    ("rlcResonance",        {"resistance": "100", "inductance": "0.001", "capacitance": "0.000001"}),
+    ("impedance",           {"resistance": "100", "inductance": "0.01", "capacitance": "0.000001", "freqHz": "1000"}),
+    ("decibelConvert",      {"value": "2", "mode": "powerToDb"}),
+    ("filterCutoff",        {"resistance": "1000", "capacitance": "0.000001", "filterType": "lowpass"}),
+    ("ledResistor",         {"supplyVoltage": "5", "forwardVoltage": "2", "forwardCurrent": "0.02"}),
+    ("wheatstoneBridge",    {"res1": "100", "res2": "200", "res3": "300"}),
+    # Digital electronics tools
+    ("convertBase",         {"number": "255", "fromBase": 10, "toBase": 16}),
+    ("twosComplement",      {"value": "-1", "bits": 8, "direction": "toTwos"}),
+    ("grayCode",            {"binary": "0100", "direction": "toGray"}),
+    ("bitwiseOp",           {"operandA": "12", "operandB": "10", "operation": "AND"}),
+    ("adcResolution",       {"bits": 8, "vref": "5"}),
+    ("dacOutput",           {"bits": 8, "vref": "5", "code": 128}),
+    ("timer555Astable",     {"resistance1": "1000", "resistance2": "1000", "capacitance": "0.000001"}),
+    ("timer555Monostable",  {"resistance": "10000", "capacitance": "0.00001"}),
+    ("frequencyPeriod",     {"value": "1000", "mode": "freqToPeriod"}),
+    ("nyquistRate",         {"bandwidthHz": "20000"}),
+    # Calculus tools
+    ("derivative",          {"expression": "x^2", "variable": "x", "point": 3.0}),
+    ("nthDerivative",       {"expression": "x^3", "variable": "x", "point": 1.0, "order": 2}),
+    ("definiteIntegral",    {"expression": "x^2", "variable": "x", "lower": 0.0, "upper": 1.0}),
+    ("tangentLine",         {"expression": "x^2", "variable": "x", "point": 2.0}),
 ]
 
 
@@ -803,6 +1153,10 @@ async def async_main():
         await test_cooking_converter(session)
         await test_measure_reference(session)
         await test_datetime_converter(session)
+        await test_network_calculator(session)
+        await test_analog_electronics(session)
+        await test_digital_electronics(session)
+        await test_calculus(session)
 
         total = PASS + FAIL
         print("\n" + "=" * 64)
