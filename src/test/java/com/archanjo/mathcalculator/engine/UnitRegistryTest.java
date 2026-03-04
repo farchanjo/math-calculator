@@ -17,6 +17,8 @@ class UnitRegistryTest {
     private static final MathContext PRECISION = MathContext.DECIMAL128;
     private static final BigDecimal TOLERANCE =
             new BigDecimal("0.0000000001");
+    private static final BigDecimal THOUSAND = new BigDecimal("1000");
+    private static final String BPS_UNIT = "bps";
 
     private void assertCloseEnough(
             final BigDecimal expected, final BigDecimal actual,
@@ -279,7 +281,7 @@ class UnitRegistryTest {
         void kilowattToWatt() {
             final BigDecimal result = UnitRegistry.convert(
                     BigDecimal.ONE, "kw", "w");
-            assertCloseEnough(new BigDecimal("1000"),
+            assertCloseEnough(THOUSAND,
                     result, "1 kW = 1000 W");
         }
     }
@@ -292,7 +294,7 @@ class UnitRegistryTest {
         void gCm3ToKgM3() {
             final BigDecimal result = UnitRegistry.convert(
                     BigDecimal.ONE, "g/cm3", "kg/m3");
-            assertCloseEnough(new BigDecimal("1000"),
+            assertCloseEnough(THOUSAND,
                     result, "1 g/cm3 = 1000 kg/m3");
         }
     }
@@ -361,6 +363,146 @@ class UnitRegistryTest {
     }
 
     @Nested
+    @DisplayName("DATA_RATE")
+    class DataRateTests {
+
+        @Test
+        void kbpsToBps() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "kbps", BPS_UNIT);
+            assertCloseEnough(THOUSAND,
+                    result, "1 kbps = 1000 bps");
+        }
+
+        @Test
+        void bypsToBps() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "byps", BPS_UNIT);
+            assertCloseEnough(new BigDecimal("8"),
+                    result, "1 byps = 8 bps");
+        }
+
+        @Test
+        void roundTripGbpsBpsGbps() {
+            final BigDecimal toBps = UnitRegistry.convert(
+                    BigDecimal.ONE, "gbps", BPS_UNIT);
+            final BigDecimal back = UnitRegistry.convert(
+                    toBps, BPS_UNIT, "gbps");
+            assertCloseEnough(BigDecimal.ONE, back,
+                    "gbps -> bps -> gbps round-trip");
+        }
+    }
+
+    @Nested
+    @DisplayName("RESISTANCE")
+    class ResistanceTests {
+
+        @Test
+        void kohmToOhm() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "kohm", "ohm");
+            assertCloseEnough(THOUSAND,
+                    result, "1 kohm = 1000 ohm");
+        }
+
+        @Test
+        void roundTripMohmOhmMohm() {
+            final BigDecimal toOhm = UnitRegistry.convert(
+                    BigDecimal.ONE, "mohm", "ohm");
+            final BigDecimal back = UnitRegistry.convert(
+                    toOhm, "ohm", "mohm");
+            assertCloseEnough(BigDecimal.ONE, back,
+                    "mohm -> ohm -> mohm round-trip");
+        }
+    }
+
+    @Nested
+    @DisplayName("CAPACITANCE")
+    class CapacitanceTests {
+
+        @Test
+        void ufToPf() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "uf", "pf");
+            assertCloseEnough(new BigDecimal("1000000"),
+                    result, "1 uf = 1000000 pf");
+        }
+
+        @Test
+        void roundTripNfFdNf() {
+            final BigDecimal toFd = UnitRegistry.convert(
+                    BigDecimal.ONE, "nf", "fd");
+            final BigDecimal back = UnitRegistry.convert(
+                    toFd, "fd", "nf");
+            assertCloseEnough(BigDecimal.ONE, back,
+                    "nf -> fd -> nf round-trip");
+        }
+    }
+
+    @Nested
+    @DisplayName("INDUCTANCE")
+    class InductanceTests {
+
+        @Test
+        void mhyToHy() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "mhy", "hy");
+            assertCloseEnough(new BigDecimal("0.001"),
+                    result, "1 mhy = 0.001 hy");
+        }
+
+        @Test
+        void uhyToHy() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "uhy", "hy");
+            assertCloseEnough(new BigDecimal("0.000001"),
+                    result, "1 uhy = 0.000001 hy");
+        }
+    }
+
+    @Nested
+    @DisplayName("VOLTAGE")
+    class VoltageTests {
+
+        @Test
+        void kvltToVlt() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "kvlt", "vlt");
+            assertCloseEnough(THOUSAND,
+                    result, "1 kvlt = 1000 vlt");
+        }
+
+        @Test
+        void mvltToVlt() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "mvlt", "vlt");
+            assertCloseEnough(new BigDecimal("0.001"),
+                    result, "1 mvlt = 0.001 vlt");
+        }
+    }
+
+    @Nested
+    @DisplayName("CURRENT")
+    class CurrentTests {
+
+        @Test
+        void mampToAmp() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "mamp", "amp");
+            assertCloseEnough(new BigDecimal("0.001"),
+                    result, "1 mamp = 0.001 amp");
+        }
+
+        @Test
+        void uampToAmp() {
+            final BigDecimal result = UnitRegistry.convert(
+                    BigDecimal.ONE, "uamp", "amp");
+            assertCloseEnough(new BigDecimal("0.000001"),
+                    result, "1 uamp = 0.000001 amp");
+        }
+    }
+
+    @Nested
     @DisplayName("Error cases")
     class ErrorTests {
 
@@ -393,10 +535,10 @@ class UnitRegistryTest {
     class ReferenceTests {
 
         @Test
-        void listCategoriesReturns15() {
-            assertEquals(15,
+        void listCategoriesReturns21() {
+            assertEquals(21,
                     UnitRegistry.listCategories().size(),
-                    "Should have 15 categories");
+                    "Should have 21 categories");
         }
 
         @Test

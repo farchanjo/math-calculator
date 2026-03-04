@@ -18,5 +18,11 @@ public enum UnitCategory {
     POWER,
     DENSITY,
     FREQUENCY,
-    ANGLE
+    ANGLE,
+    DATA_RATE,
+    RESISTANCE,
+    CAPACITANCE,
+    INDUCTANCE,
+    VOLTAGE,
+    CURRENT
 }

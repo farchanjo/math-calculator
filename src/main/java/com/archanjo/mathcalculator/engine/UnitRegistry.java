@@ -13,7 +13,7 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 
 /**
- * Static registry of unit definitions and conversion logic for all 15 categories.
+ * Static registry of unit definitions and conversion logic for all 21 categories.
  *
  * <p>Linear conversions use {@code value * from.toBaseFactor / to.toBaseFactor}.
  * Temperature uses formula-based conversion through Celsius.
@@ -63,6 +63,15 @@ public final class UnitRegistry {
     private static final BigDecimal ARCSEC_DEG =
             BigDecimal.ONE.divide(SECONDS_PER_HOUR, FACTOR_SCALE, ROUNDING);
 
+    // Electrical/Data rate prefix constants
+    private static final BigDecimal MILLION = new BigDecimal("1000000");
+    private static final BigDecimal BILLION = new BigDecimal("1000000000");
+    private static final BigDecimal TRILLION = new BigDecimal("1000000000000");
+    private static final BigDecimal EIGHT = new BigDecimal("8");
+    private static final BigDecimal MICRO = new BigDecimal("0.000001");
+    private static final BigDecimal NANO = new BigDecimal("0.000000001");
+    private static final BigDecimal PICO = new BigDecimal("0.000000000001");
+
     // Temperature constants
     private static final BigDecimal NINE = new BigDecimal("9");
     private static final BigDecimal FIVE = new BigDecimal("5");
@@ -109,6 +118,12 @@ public final class UnitRegistry {
         registerDensity();
         registerFrequency();
         registerAngle();
+        registerDataRate();
+        registerResistance();
+        registerCapacitance();
+        registerInductance();
+        registerVoltage();
+        registerCurrent();
         registerGasMark();
     }
 
@@ -449,6 +464,60 @@ public final class UnitRegistry {
         reg("arcmin", "arcminute", cat, ARCMIN_DEG);
         reg("arcsec", "arcsecond", cat, ARCSEC_DEG);
         reg("turn", "turn", cat, new BigDecimal("360"));
+    }
+
+    private static void registerDataRate() {
+        final UnitCategory cat = UnitCategory.DATA_RATE;
+        regBase("bps", "bit per second", cat);
+        reg("kbps", "kilobit per second", cat, THOUSAND);
+        reg("mbps", "megabit per second", cat, MILLION);
+        reg("gbps", "gigabit per second", cat, BILLION);
+        reg("tbps", "terabit per second", cat, TRILLION);
+        reg("byps", "byte per second", cat, EIGHT);
+        reg("kbyps", "kilobyte per second", cat, new BigDecimal("8000"));
+        reg("mbyps", "megabyte per second", cat, new BigDecimal("8000000"));
+        reg("gbyps", "gigabyte per second", cat, new BigDecimal("8000000000"));
+    }
+
+    private static void registerResistance() {
+        final UnitCategory cat = UnitCategory.RESISTANCE;
+        regBase("ohm", "ohm", cat);
+        reg("mohm", "milliohm", cat, MILLI);
+        reg("kohm", "kiloohm", cat, THOUSAND);
+        reg("megohm", "megaohm", cat, MILLION);
+    }
+
+    private static void registerCapacitance() {
+        final UnitCategory cat = UnitCategory.CAPACITANCE;
+        regBase("fd", "farad", cat);
+        reg("mfd", "millifarad", cat, MILLI);
+        reg("uf", "microfarad", cat, MICRO);
+        reg("nf", "nanofarad", cat, NANO);
+        reg("pf", "picofarad", cat, PICO);
+    }
+
+    private static void registerInductance() {
+        final UnitCategory cat = UnitCategory.INDUCTANCE;
+        regBase("hy", "henry", cat);
+        reg("mhy", "millihenry", cat, MILLI);
+        reg("uhy", "microhenry", cat, MICRO);
+        reg("nhy", "nanohenry", cat, NANO);
+    }
+
+    private static void registerVoltage() {
+        final UnitCategory cat = UnitCategory.VOLTAGE;
+        regBase("vlt", "volt", cat);
+        reg("mvlt", "millivolt", cat, MILLI);
+        reg("kvlt", "kilovolt", cat, THOUSAND);
+        reg("uvlt", "microvolt", cat, MICRO);
+    }
+
+    private static void registerCurrent() {
+        final UnitCategory cat = UnitCategory.CURRENT;
+        regBase("amp", "ampere", cat);
+        reg("mamp", "milliampere", cat, MILLI);
+        reg("uamp", "microampere", cat, MICRO);
+        reg("namp", "nanoampere", cat, NANO);
     }
 
     private static void registerGasMark() {
