@@ -195,18 +195,63 @@ Trig functions use lookup tables for exact values at notable angles (multiples o
 
 ## Integration
 
+The calculator is available as a hosted MCP server at **`https://calc.archanjo.com/sse`** — no local setup required.
+
 ### Claude Code
 
-Add to your MCP configuration:
+```bash
+claude mcp add --transport sse calc https://calc.archanjo.com/sse
+```
+
+Or add manually to `~/.claude/mcp.json` (global) or `.claude/mcp.json` (project):
 
 ```json
 {
   "mcpServers": {
-    "math-calculator": {
-      "url": "http://localhost:44321/sse"
+    "calc": {
+      "url": "https://calc.archanjo.com/sse"
     }
   }
 }
+```
+
+### OpenCode
+
+Add to `~/.config/opencode/config.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "calc": {
+        "url": "https://calc.archanjo.com/sse",
+        "transport": "sse"
+      }
+    }
+  }
+}
+```
+
+### Claude Desktop
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "calc": {
+      "url": "https://calc.archanjo.com/sse"
+    }
+  }
+}
+```
+
+### Other MCP-compatible clients (Cursor, Windsurf, etc.)
+
+Connect via SSE transport to:
+
+```
+https://calc.archanjo.com/sse
 ```
 
 ### MCP Inspector
@@ -215,7 +260,13 @@ Add to your MCP configuration:
 pnpm dlx @modelcontextprotocol/inspector
 ```
 
-Connect to `http://localhost:44321/sse`.
+Connect to `https://calc.archanjo.com/sse`.
+
+### Self-hosted
+
+```bash
+./gradlew bootRun   # starts on http://localhost:44321/sse
+```
 
 ### Integration Test Script
 
