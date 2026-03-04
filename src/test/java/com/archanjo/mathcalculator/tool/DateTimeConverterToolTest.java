@@ -139,6 +139,17 @@ class DateTimeConverterToolTest {
         }
 
         @Test
+        void uppercaseDdFormatReturnsDayOfMonth() {
+            final String result = tool.currentDateTime(
+                    UTC_ZONE, "DD/MM/yyyy");
+            final String dayPart = result.split("/")[0];
+            final int day = Integer.parseInt(dayPart);
+            assertTrue(day >= 1 && day <= 31,
+                    "DD should be normalized to dd (day of month), got: "
+                            + day);
+        }
+
+        @Test
         void invalidTimezoneReturnsError() {
             final String result = tool.currentDateTime(
                     "Invalid/Zone", ISO_FMT);

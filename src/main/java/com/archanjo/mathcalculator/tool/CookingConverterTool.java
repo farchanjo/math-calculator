@@ -2,6 +2,7 @@ package com.archanjo.mathcalculator.tool;
 
 import java.math.BigDecimal;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.ai.tool.annotation.Tool;
@@ -14,8 +15,10 @@ import com.archanjo.mathcalculator.engine.UnitRegistry;
 public class CookingConverterTool {
 
     private static final Set<String> VOLUME_UNITS =
-            Set.of("l", "ml", "uscup", "tbsp", "tsp",
-                    "usfloz", "usgal", "igal");
+            Set.of("l", "ml", "uscup", "cup", "tbsp", "tsp",
+                    "usfloz", "floz", "usgal", "gal", "igal");
+    private static final Map<String, String> VOLUME_ALIASES =
+            Map.of("cup", "uscup", "floz", "usfloz", "gal", "usgal");
     private static final Set<String> WEIGHT_UNITS =
             Set.of("kg", "g", "mg", "lb", "oz");
     private static final Set<String> TEMP_UNITS =
@@ -38,8 +41,10 @@ public class CookingConverterTool {
         try {
             validateAllowed(fromUnit, VOLUME_UNITS, COOKING_VOLUME);
             validateAllowed(toUnit, VOLUME_UNITS, COOKING_VOLUME);
+            final String from = resolveAlias(fromUnit, VOLUME_ALIASES);
+            final String dest = resolveAlias(toUnit, VOLUME_ALIASES);
             result = strip(UnitRegistry.convert(
-                    new BigDecimal(value), fromUnit, toUnit));
+                    new BigDecimal(value), from, dest));
         } catch (IllegalArgumentException ex) {
             result = "Error: " + ex.getMessage();
         }
@@ -125,6 +130,12 @@ public class CookingConverterTool {
                     "Oven temperature unit must be c, f, or gasmark."
                             + " Received: " + code);
         }
+    }
+
+    private String resolveAlias(final String code,
+                               final Map<String, String> aliases) {
+        final String lower = code.toLowerCase(Locale.ROOT);
+        return aliases.getOrDefault(lower, lower);
     }
 
     private void validateAllowed(

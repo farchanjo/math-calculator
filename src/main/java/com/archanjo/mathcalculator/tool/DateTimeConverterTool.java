@@ -270,8 +270,17 @@ public class DateTimeConverterTool {
             case "rfc1123" -> dateTime.format(
                     DateTimeFormatter.RFC_1123_DATE_TIME);
             default -> dateTime.format(
-                    DateTimeFormatter.ofPattern(format));
+                    DateTimeFormatter.ofPattern(
+                            normalizePattern(format)));
         };
+    }
+
+    /**
+     * Fixes common DateTimeFormatter pattern mistakes:
+     * uppercase DD (day-of-year) to dd (day-of-month).
+     */
+    private String normalizePattern(final String pattern) {
+        return pattern.replaceAll("(?<![A-Za-z])DD(?![A-Za-z])", "dd");
     }
 
     // ------------------------------------------------------------------ //

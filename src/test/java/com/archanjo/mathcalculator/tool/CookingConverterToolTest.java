@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 class CookingConverterToolTest {
 
     private static final String ERROR_PREFIX = "Error:";
+    private static final BigDecimal CLOSE_ENOUGH = new BigDecimal("0.01");
 
     private final CookingConverterTool tool = new CookingConverterTool();
 
@@ -25,7 +26,7 @@ class CookingConverterToolTest {
                     "1", "uscup", "tbsp");
             final BigDecimal value = new BigDecimal(result);
             assertTrue(value.subtract(new BigDecimal("16")).abs()
-                            .compareTo(new BigDecimal("0.01")) < 0,
+                            .compareTo(CLOSE_ENOUGH) < 0,
                     "1 US cup = 16 tbsp");
         }
 
@@ -35,8 +36,38 @@ class CookingConverterToolTest {
                     "1", "tbsp", "tsp");
             final BigDecimal value = new BigDecimal(result);
             assertTrue(value.subtract(new BigDecimal("3")).abs()
-                            .compareTo(new BigDecimal("0.01")) < 0,
+                            .compareTo(CLOSE_ENOUGH) < 0,
                     "1 tbsp = 3 tsp");
+        }
+
+        @Test
+        void cupAliasToTablespoon() {
+            final String result = tool.convertCookingVolume(
+                    "1", "cup", "tbsp");
+            final BigDecimal value = new BigDecimal(result);
+            assertTrue(value.subtract(new BigDecimal("16")).abs()
+                            .compareTo(CLOSE_ENOUGH) < 0,
+                    "1 cup (alias) = 16 tbsp");
+        }
+
+        @Test
+        void flozAliasToMl() {
+            final String result = tool.convertCookingVolume(
+                    "1", "floz", "ml");
+            final BigDecimal value = new BigDecimal(result);
+            assertTrue(value.subtract(new BigDecimal("29.57")).abs()
+                            .compareTo(new BigDecimal("0.1")) < 0,
+                    "1 floz (alias) ≈ 29.57 ml");
+        }
+
+        @Test
+        void galAliasToLiter() {
+            final String result = tool.convertCookingVolume(
+                    "1", "gal", "l");
+            final BigDecimal value = new BigDecimal(result);
+            assertTrue(value.subtract(new BigDecimal("3.785")).abs()
+                            .compareTo(CLOSE_ENOUGH) < 0,
+                    "1 gal (alias) ≈ 3.785 l");
         }
 
         @Test
@@ -57,7 +88,7 @@ class CookingConverterToolTest {
             final String result = tool.convertCookingWeight("1", "lb", "oz");
             final BigDecimal value = new BigDecimal(result);
             assertTrue(value.subtract(new BigDecimal("16")).abs()
-                            .compareTo(new BigDecimal("0.01")) < 0,
+                            .compareTo(CLOSE_ENOUGH) < 0,
                     "1 lb ≈ 16 oz");
         }
 
