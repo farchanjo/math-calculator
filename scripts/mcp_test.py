@@ -2,7 +2,7 @@
 """
 MCP Tool Integration Tests + Benchmark — math-calculator (asyncio)
 
-Validates all 85 MCP tools via SSE transport using async I/O:
+Validates all 85 MCP tools via Streamable HTTP transport using async I/O:
   - Success cases with precision assertions
   - Error cases (invalid input, domain errors, edge cases)
   - Latency metrics collected for every call
@@ -27,75 +27,60 @@ import time
 import aiohttp
 
 # ---------------------------------------------------------------------------
-# Async MCP client — dict-based response routing with asyncio.Event
+# Async MCP client — Streamable HTTP transport (single POST /mcp endpoint)
 # ---------------------------------------------------------------------------
-MSG_URL = None
+MCP_URL: str | None = None
+SESSION_ID: str | None = None
 REQ_ID = 0
-ENDPOINT_READY = asyncio.Event()
-
-# Response store: {request_id: (asyncio.Event, response_data)}
-RESP_STORE: dict[int, list] = {}
-
-
-async def sse_listener(session: aiohttp.ClientSession, base: str):
-    """Open SSE connection, capture endpoint, route responses by ID."""
-    global MSG_URL
-    async with session.get(f"{base}/sse", timeout=aiohttp.ClientTimeout(total=600)) as resp:
-        buffer = ""
-        async for chunk in resp.content.iter_any():
-            buffer += chunk.decode("utf-8")
-            while "\n" in buffer:
-                line, buffer = buffer.split("\n", 1)
-                line = line.strip()
-                if not line.startswith("data:"):
-                    continue
-                data = line[5:]
-                if "/mcp/message?" in data:
-                    MSG_URL = f"{base}{data}"
-                    ENDPOINT_READY.set()
-                else:
-                    try:
-                        parsed = json.loads(data)
-                        rid = parsed.get("id")
-                        if rid is not None and rid in RESP_STORE:
-                            entry = RESP_STORE[rid]
-                            entry[1] = parsed
-                            entry[0].set()
-                    except json.JSONDecodeError:
-                        pass
 
 
 async def send(session: aiohttp.ClientSession, method: str, params=None, notification=False):
-    """Send a JSON-RPC message and optionally wait for a response."""
-    global REQ_ID
+    """Send a JSON-RPC message via Streamable HTTP and return the response."""
+    global REQ_ID, SESSION_ID
     body: dict = {"jsonrpc": "2.0", "method": method}
     if not notification:
         REQ_ID += 1
-        rid = REQ_ID
-        body["id"] = rid
-        evt = asyncio.Event()
-        RESP_STORE[rid] = [evt, None]
-    else:
-        rid = None
+        body["id"] = REQ_ID
     if params:
         body["params"] = params
+
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+    }
+    if SESSION_ID:
+        headers["mcp-session-id"] = SESSION_ID
+
     try:
         async with session.post(
-            MSG_URL,
+            MCP_URL,
             json=body,
+            headers=headers,
             timeout=aiohttp.ClientTimeout(total=10),
-        ) as _:
-            pass
+        ) as resp:
+            # Capture session ID on first response (initialize)
+            if SESSION_ID is None and "mcp-session-id" in resp.headers:
+                SESSION_ID = resp.headers["mcp-session-id"]
+
+            if notification or resp.status == 202:
+                return None
+
+            content_type = resp.headers.get("Content-Type", "")
+            if "text/event-stream" in content_type:
+                # Server chose to stream — collect SSE-format data: lines from the response body
+                raw = await resp.text()
+                result = None
+                for line in raw.splitlines():
+                    if line.startswith("data:"):
+                        try:
+                            result = json.loads(line[5:].strip())
+                        except json.JSONDecodeError:
+                            pass
+                return result
+
+            return await resp.json()
     except aiohttp.ClientError:
-        pass
-    if notification:
         return None
-    try:
-        await asyncio.wait_for(evt.wait(), timeout=10)
-    except asyncio.TimeoutError:
-        pass
-    entry = RESP_STORE.pop(rid, None)
-    return entry[1] if entry else None
 
 
 async def call_tool(session: aiohttp.ClientSession, name: str, args: dict):
@@ -1094,7 +1079,7 @@ def print_latency_report():
 # Main
 # ---------------------------------------------------------------------------
 async def async_main():
-    global PASS, FAIL
+    global PASS, FAIL, MCP_URL
 
     parser = argparse.ArgumentParser(description="MCP tool integration tests + benchmark (asyncio)")
     parser.add_argument("--base", default="http://localhost:44321",
@@ -1106,15 +1091,8 @@ async def async_main():
     base = args.base.rstrip("/")
 
     async with aiohttp.ClientSession() as session:
-        print(f"Connecting to {base}/sse ...")
-        listener_task = asyncio.create_task(sse_listener(session, base))
-
-        try:
-            await asyncio.wait_for(ENDPOINT_READY.wait(), timeout=5)
-        except asyncio.TimeoutError:
-            print("ERROR: could not obtain SSE endpoint. Is the server running?")
-            sys.exit(2)
-        print(f"Session: {MSG_URL}")
+        MCP_URL = f"{base}/mcp"
+        print(f"Connecting to {MCP_URL} ...")
 
         # Initialize MCP
         resp = await send(session, "initialize", {
@@ -1127,8 +1105,8 @@ async def async_main():
             sys.exit(2)
         info = resp["result"]["serverInfo"]
         print(f"Server: {info['name']} v{info['version']}")
+        print(f"Session ID: {SESSION_ID}")
         await send(session, "notifications/initialized", notification=True)
-        await asyncio.sleep(0.3)
 
         # List tools
         resp = await send(session, "tools/list")
@@ -1194,8 +1172,6 @@ async def async_main():
 
         # -- Latency report --
         print_latency_report()
-
-        listener_task.cancel()
 
     sys.exit(0 if FAIL == 0 else 1)
 
