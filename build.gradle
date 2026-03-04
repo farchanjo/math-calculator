@@ -111,7 +111,7 @@ tasks.register('cdsTrainingRun', Exec) {
 
         # Wait for startup (max 20s)
         for i in \$(seq 1 40); do
-            if curl -s -o /dev/null --max-time 1 http://localhost:${port}/sse 2>/dev/null; then
+            if curl -s -o /dev/null --max-time 1 http://localhost:${port}/mcp 2>/dev/null; then
                 echo "Server started (PID \$APP_PID) — stopping to flush CDS archive..."
                 kill \$APP_PID
                 wait \$APP_PID 2>/dev/null
